@@ -92,5 +92,12 @@ void render_scene( WorldView &view, std::vector<uint32_t> &framebuffer, WorldMod
 
     DrawTexture( texture, 0, 0, WHITE );
 
+    std::string delta_time_text = "Delta time: " + std::to_string( GetFrameTime() * 1000.0F ) + " ms";
+    DrawText( delta_time_text.c_str(), 0, 760, 40, RED );
+    std::string background_text = "Background: " + std::to_string( view.metrics.background_us / 1000.0F ) + " ms";
+    DrawText( background_text.c_str(), 0, 720, 40, GREEN );
+    std::string rays_text = "Rays: " + std::to_string( view.metrics.rays_us / 1000.0F ) + " ms";
+    DrawText( rays_text.c_str(), 0, 680, 40, BLUE );
+
     EndDrawing();
 }

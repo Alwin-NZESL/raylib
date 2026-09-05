@@ -50,8 +50,7 @@ public:
 
 	bool do_show_minimap() { return show_minimap; }
 
-	int get_floor_texture_id( Vec2 hitpoint );
-	int get_ceiling_texture_id( Vec2 hitpoint );
+	std::pair<int,int> get_background_ids( Vec2 hitpoint );
 	int get_wall_texture_id( Vec2 hitpoint );
 
 	int get_celltype( Vec2i cell_to_test ) const { 

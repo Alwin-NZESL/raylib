@@ -31,8 +31,9 @@ class TextureContainer
 public:
 	TextureContainer();
 
-	uint32_t get_colour( int tex_id, Vec2 tex_coord ) const;
-	
+	uint32_t get_colour( uint32_t* tex_buffer, Vec2 tex_coord ) const;
+	uint32_t* get_buffer( int tex_id ) const;
+
 private:
 	const static int TEXTURE_WIDTH = 64;
 	const static int TEXTURE_HEIGHT = 64;

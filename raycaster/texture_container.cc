@@ -21,11 +21,6 @@
 
 #include "raylib.h"
 
-const Vec2 TextureContainer::texture_scale = { 
-    static_cast<float>(TextureContainer::TEXTURE_WIDTH), 
-    static_cast<float>(TextureContainer::TEXTURE_HEIGHT)
-};
-
 TextureContainer::TextureContainer()
 {
     make_generated_textures();
@@ -88,21 +83,21 @@ void TextureContainer::make_generated_textures()
     }
 }
 
-uint32_t TextureContainer::get_colour( int tex_id, Vec2 tex_coord ) const
+uint32_t TextureContainer::get_colour( uint32_t* tex_buffer, Vec2 tex_coord ) const
 {
-    constexpr uint32_t black = (0xFF << 24);
+     // Scale texture coordinates to pixel coordinates and mask to get integer pixel indices
+    auto cx = static_cast<int>(tex_coord.x * TEXTURE_WIDTH) & (TEXTURE_WIDTH - 1);
+    auto cy = static_cast<int>(tex_coord.y * TEXTURE_HEIGHT) & (TEXTURE_HEIGHT - 1);
 
-    if( tex_id < 0 || tex_id >= textures.size() 
-        || tex_coord.x < 0.0f || tex_coord.x >= 1.0f
-        || tex_coord.y < 0.0f || tex_coord.y >= 1.0f
-        || textures[tex_id].data == nullptr
-    )
-        return black;
+    size_t index = cy * TEXTURE_WIDTH + cx; // Compute pixel position in the image
 
-    Vec2i coord{ tex_coord.scale( texture_scale ).floor() }; // Scale texture coordinates to pixel coordinates and floor to get integer pixel indices   
-    
-    size_t index = coord.y * TEXTURE_WIDTH + coord.x; // Compute pixel position in the image
-    uint32_t* data = static_cast<uint32_t*>(textures[tex_id].data); // Get raw image data pointer
+    return tex_buffer[index];
+}
 
-    return data[index];
+uint32_t* TextureContainer::get_buffer( int tex_id ) const
+{
+    if( tex_id < 0 || tex_id >= textures.size() || textures[tex_id].data == nullptr )
+        return nullptr;
+
+    return static_cast<uint32_t*>(textures[tex_id].data);
 }

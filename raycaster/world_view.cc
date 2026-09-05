@@ -21,16 +21,17 @@
 #include "world_model.h"
 
 #include <cmath>
+#include <chrono>
+
 #include "vec2.h"
 
-uint32_t get_pixel_value( TextureContainer& textures, int texture_id, const Vec2 &tex_coord, float shading_factor )
+uint32_t shade_pixel( uint32_t colour, float shading_factor )
 {
     constexpr uint32_t ALPHA_MASK = 0xFF000000;
     constexpr uint32_t RED_MASK   = 0x00FF0000;
     constexpr uint32_t GREEN_MASK = 0x0000FF00;
     constexpr uint32_t BLUE_MASK  = 0x000000FF;
 
-    uint32_t colour = textures.get_colour( texture_id, tex_coord );
     uint32_t scale = shading_factor * 256;
 
     return
@@ -42,8 +43,18 @@ uint32_t get_pixel_value( TextureContainer& textures, int texture_id, const Vec2
 
 void WorldView::draw_frame( uint32_t* framebuffer, WorldModel* world, int width, int height )
 {
+    auto start = std::chrono::high_resolution_clock::now();
+
     paint_background( framebuffer, world, width, height );
+
+    auto background_end = std::chrono::high_resolution_clock::now();
+
     paint_rays( framebuffer, world, width, height );
+
+    auto rays_end = std::chrono::high_resolution_clock::now();
+
+    metrics.background_us = std::chrono::duration_cast<std::chrono::microseconds>( background_end - start ).count();
+    metrics.rays_us = std::chrono::duration_cast<std::chrono::microseconds>( rays_end - background_end ).count();
 }
 
 void WorldView::draw_minimap( uint32_t* framebuffer, WorldModel* world, int width, int height )
@@ -69,6 +80,8 @@ void WorldView::paint_rays( uint32_t* framebuffer, WorldModel* world, int width,
         int wall_top    = (height - wall_height) / 2;
         int wall_bottom = (height + wall_height) / 2;
 
+        uint32_t* tex_buffer = textures.get_buffer( ray_tex_id );
+
         float shading_factor = 1.0F - walk_side * 0.35F;
 
         for( int y = wall_top; y < wall_bottom; ++y ) {
@@ -76,18 +89,18 @@ void WorldView::paint_rays( uint32_t* framebuffer, WorldModel* world, int width,
             if( (y<0) || (y>=height) )
                 continue;
 
-            Vec2 tex_coord{ (float)wall_offset, (y - wall_top)/(float)wall_height };
-
             uint32_t * ray_pixel = (uint32_t*)(&framebuffer[y * width + x]);
 
-            *ray_pixel = get_pixel_value( textures, ray_tex_id, tex_coord, shading_factor );
+            Vec2 tex_coord{ (float)wall_offset, (y - wall_top)/(float)wall_height };
+            uint32_t ray_colour = textures.get_colour( tex_buffer, tex_coord );
+
+            *ray_pixel = shade_pixel( ray_colour, shading_factor );
         }
     }
 }
 
 void WorldView::paint_background( uint32_t* framebuffer, WorldModel* world, int width, int height )
 {
-    // paint background
     const float angle = world->get_player_angle();
     const float zoom = world->get_player_zoom();
     const Vec2 position = world->get_player_position();
@@ -102,6 +115,11 @@ void WorldView::paint_background( uint32_t* framebuffer, WorldModel* world, int 
     const float eye_z = height / 2;               // complete distance the ray has to travel downwards in order to hit the floor
     const float shading_factor = 0.75F;
 
+    int current_floor_tex_id = -1;
+    int current_ceil_tex_id = -1;
+    uint32_t * floor_tex_buffer = nullptr;
+    uint32_t * ceil_tex_buffer = nullptr;
+
     for( int y = height / 2; y < height; ++y ) {
 
         // y - eye_z is the distance the ray has moved towards the floor as it has traveled from the eye to the viewing plane
@@ -112,18 +130,30 @@ void WorldView::paint_background( uint32_t* framebuffer, WorldModel* world, int 
         Vec2 hit_point = position + left_ray * row_distance;
         Vec2 step =  (right_ray - left_ray) * (row_distance / width);
 
+        uint32_t * floor_pixel_row = framebuffer + y * width;
+        uint32_t * ceil_pixel_row = framebuffer + (height - y) * width;
+
         for( int x = 0; x < width; ++x ) {
 
-            int floor_tex_id = world->get_floor_texture_id( hit_point );
-            int ceil_tex_id = world->get_ceiling_texture_id( hit_point );
+            auto [floor_tex_id, ceil_tex_id] = world->get_background_ids( hit_point );
 
-            uint32_t * floor_pixel = &framebuffer[y * width + x];
-            uint32_t * ceil_pixel = &framebuffer[(height - y) * width + x];
+            if( floor_tex_id != current_floor_tex_id ) {
+                floor_tex_buffer = textures.get_buffer( floor_tex_id );
+                current_floor_tex_id = floor_tex_id;
+            }
+
+            if( ceil_tex_id != current_ceil_tex_id ) {
+                ceil_tex_buffer = textures.get_buffer( ceil_tex_id );
+                current_ceil_tex_id = ceil_tex_id;
+            }
 
             Vec2 tex_coord = hit_point - hit_point.floor();
 
-            *floor_pixel = get_pixel_value(textures, floor_tex_id, tex_coord, shading_factor);
-            *ceil_pixel = get_pixel_value(textures, ceil_tex_id, tex_coord, shading_factor);
+            uint32_t floor_colour = textures.get_colour( floor_tex_buffer, tex_coord );
+            uint32_t ceil_colour = textures.get_colour( ceil_tex_buffer, tex_coord );
+
+            floor_pixel_row[x] = shade_pixel( floor_colour, shading_factor );
+            ceil_pixel_row[x] = shade_pixel(ceil_colour, shading_factor);
 
             hit_point = hit_point + step;
         }

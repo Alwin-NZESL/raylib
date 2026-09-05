@@ -27,32 +27,26 @@ void WorldModel::key_state_action( WorldModel::KeyState key_state, bool is_press
 		this->key_state &= ~key_state;
 }
 
-int WorldModel::get_floor_texture_id( Vec2 hitpoint )
-{ 
+std::pair<int,int> WorldModel::get_background_ids( Vec2 hitpoint )
+{
     Vec2i cell = hitpoint.floor();
     // int floor_tex_id = ((int(hitpoint.x + hitpoint.y)) & 1) ? 4 : 3; // diagonal floor
     // int floor_tex_id = ((cell.x + cell.y) & 1) ? 4 : 3; // checkered floor
-    int floor_tex_id = ((int(cell.x )) & 1) ? 4 : 3; // vertical stripes floor
-
-    if( show_generated_textures )
-        floor_tex_id += 8;
-    
-    return floor_tex_id;
-}
-
-int WorldModel::get_ceiling_texture_id( Vec2 hitpoint )
-{ 
+    // int floor_tex_id = ((int(cell.x )) & 1) ? 4 : 3; // vertical stripes floor
+    int floor_tex_id = 3;
     int ceil_tex_id = 5;
 
-    if( show_generated_textures )
+    if( show_generated_textures ) {
+        floor_tex_id += 8;
         ceil_tex_id += 8;
+    }
     
-    return ceil_tex_id;
+    return std::make_pair( floor_tex_id, ceil_tex_id );
 }
 
 int WorldModel::get_wall_texture_id( Vec2 hitpoint )
 {
-    Vec2i cell = hitpoint.floor();;
+    Vec2i cell = hitpoint.floor();
     int wall_text_id = level[ cell.x + cell.y * world_dimension.x ] - '1';
     
     if( show_generated_textures )

@@ -24,11 +24,19 @@
 #include "world_model.h"
 #include "texture_container.h"
 
+struct Metrics
+{
+    int64_t background_us;
+    int64_t rays_us;
+};
+
 class WorldView
 {
 public:
     void draw_frame( uint32_t* framebuffer, WorldModel* world, int width, int height );
     void draw_minimap( uint32_t* framebuffer, WorldModel* world, int width, int height );
+
+    Metrics metrics;
 
 private:
 	size_t unit_size = 15;
