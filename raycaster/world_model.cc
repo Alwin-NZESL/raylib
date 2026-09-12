@@ -17,7 +17,30 @@
  * MA 02110-1301, USA.
  */
 
+#include <unordered_map>
+
+#include "raylib.h"
+
 #include "world_model.h"
+
+void WorldModel::handle_input()
+{
+    static std::unordered_map<int, WorldModel::KeyState> key_map = {
+        { KEY_UP, WorldModel::KeyState::MoveForward },
+        { KEY_DOWN, WorldModel::KeyState::MoveBackward },
+        { KEY_LEFT, WorldModel::KeyState::RotateLeft },
+        { KEY_RIGHT, WorldModel::KeyState::RotateRight },
+        { KEY_X, WorldModel::KeyState::ZoomIn },
+        { KEY_Z, WorldModel::KeyState::ZoomOut },
+        { KEY_SPACE, WorldModel::KeyState::ToggleMinimap },
+        { KEY_T, WorldModel::KeyState::ToggleTextures }
+    };
+
+    for( const auto &[key, key_state] : key_map ) {
+        if( IsKeyPressed(key) ) key_state_action( key_state, true );
+        if( IsKeyReleased(key) ) key_state_action( key_state, false );
+    }
+}
 
 void WorldModel::key_state_action( WorldModel::KeyState key_state, bool is_pressed )
 {

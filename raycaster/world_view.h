@@ -20,33 +20,43 @@
 #pragma once
 
 #include <cstdint>
+#include <vector>
 
 #include "world_model.h"
 #include "texture_container.h"
 
 struct Metrics
 {
-    int64_t background_us;
-    int64_t rays_us;
+    double background_us;
+    double rays_us;
 };
 
 class WorldView
 {
 public:
-    void draw_frame( uint32_t* framebuffer, WorldModel* world, int width, int height );
-    void draw_minimap( uint32_t* framebuffer, WorldModel* world, int width, int height );
-
-    Metrics metrics;
+    void setup(int width, int height);
+    void render( WorldModel &world );
+    void shutdown() {
+        UnloadTexture( texture );
+    }
 
 private:
 	size_t unit_size = 15;
     TextureContainer textures;
+    Texture2D texture;
+    std::vector<uint32_t> framebuffer;
+    int width;
+    int height;
+    Metrics metrics;
 
-    void paint_background( uint32_t* framebuffer, WorldModel* world, int width, int height );
-    void paint_rays( uint32_t* framebuffer, WorldModel* world, int width, int height );
-    void paint_minimap( uint32_t* framebuffer, WorldModel* world, int width, int height );
-    void paint_camera( uint32_t* framebuffer, WorldModel* world, int width, int height );
+    void draw_frame( WorldModel* world );
+    void draw_minimap( WorldModel* world );
 
-    void draw_line( uint32_t* framebuffer, const Vec2& start, const Vec2& end, uint32_t color );
-    void draw_point( uint32_t* framebuffer, const Vec2& position, float size, uint32_t color );
+    void paint_background( WorldModel* world );
+    void paint_rays( WorldModel* world );
+    void paint_minimap( WorldModel* world );
+    void paint_camera( WorldModel* world );
+
+    void draw_line( const Vec2& start, const Vec2& end, uint32_t color );
+    void draw_point( const Vec2& position, float size, uint32_t color );
 };

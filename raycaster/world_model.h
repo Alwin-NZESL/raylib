@@ -62,6 +62,8 @@ public:
 	float get_player_angle() { return player_angle; }
 	float get_player_zoom() { return player_zoom; }
 
+	void handle_input();
+
 private:
 	uint8_t key_state = 0;
 	bool show_minimap = true;

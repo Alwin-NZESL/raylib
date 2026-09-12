@@ -41,15 +41,51 @@ uint32_t shade_pixel( uint32_t colour, float shading_factor )
            (colour & ALPHA_MASK);
 }
 
-void WorldView::draw_frame( uint32_t* framebuffer, WorldModel* world, int width, int height )
+void WorldView::setup(int width, int height)
+{
+    this->width = width;
+    this->height = height;
+
+    framebuffer.resize( width * height );
+    std::fill( framebuffer.begin(), framebuffer.end(), 0 );
+    Image image = {
+        .data = framebuffer.data(),
+        .width = width,
+        .height = height,
+        .mipmaps = 1,
+        .format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8
+    };
+    texture = LoadTextureFromImage( image );    
+}
+
+void WorldView::render( WorldModel &world )
+{
+    draw_frame( &world );
+
+    if( world.do_show_minimap() )
+        draw_minimap( &world );
+
+    UpdateTexture( texture, framebuffer.data() );
+
+    DrawTexture( texture, 0, 0, WHITE );
+
+    std::string delta_time_text = "Delta time: " + std::to_string( GetFrameTime() * 1000.0F ) + " ms";
+    DrawText( delta_time_text.c_str(), 0, 760, 40, RED );
+    std::string background_text = "Background: " + std::to_string( metrics.background_us / 1000.0F ) + " ms";
+    DrawText( background_text.c_str(), 0, 720, 40, GREEN );
+    std::string rays_text = "Rays: " + std::to_string( metrics.rays_us / 1000.0F ) + " ms";
+    DrawText( rays_text.c_str(), 0, 680, 40, BLUE );
+}
+
+void WorldView::draw_frame( WorldModel* world )
 {
     auto start = std::chrono::high_resolution_clock::now();
 
-    paint_background( framebuffer, world, width, height );
+    paint_background( world );
 
     auto background_end = std::chrono::high_resolution_clock::now();
 
-    paint_rays( framebuffer, world, width, height );
+    paint_rays( world );
 
     auto rays_end = std::chrono::high_resolution_clock::now();
 
@@ -57,13 +93,13 @@ void WorldView::draw_frame( uint32_t* framebuffer, WorldModel* world, int width,
     metrics.rays_us = std::chrono::duration_cast<std::chrono::microseconds>( rays_end - background_end ).count();
 }
 
-void WorldView::draw_minimap( uint32_t* framebuffer, WorldModel* world, int width, int height )
+void WorldView::draw_minimap( WorldModel* world )
 {
-    paint_minimap( framebuffer, world, width, height );
-    paint_camera( framebuffer, world, width, height );
+    paint_minimap( world );
+    paint_camera( world );
 }
 
-void WorldView::paint_rays( uint32_t* framebuffer, WorldModel* world, int width, int height )
+void WorldView::paint_rays( WorldModel* world )
 {
     float zoom_factor;
     int ray_tex_id;
@@ -89,7 +125,7 @@ void WorldView::paint_rays( uint32_t* framebuffer, WorldModel* world, int width,
             if( (y<0) || (y>=height) )
                 continue;
 
-            uint32_t * ray_pixel = (uint32_t*)(&framebuffer[y * width + x]);
+            uint32_t * ray_pixel = (uint32_t*)(&(framebuffer.data())[y * width + x]);
 
             Vec2 tex_coord{ (float)wall_offset, (y - wall_top)/(float)wall_height };
             uint32_t ray_colour = textures.get_colour( tex_buffer, tex_coord );
@@ -99,7 +135,7 @@ void WorldView::paint_rays( uint32_t* framebuffer, WorldModel* world, int width,
     }
 }
 
-void WorldView::paint_background( uint32_t* framebuffer, WorldModel* world, int width, int height )
+void WorldView::paint_background( WorldModel* world )
 {
     const float angle = world->get_player_angle();
     const float zoom = world->get_player_zoom();
@@ -130,8 +166,8 @@ void WorldView::paint_background( uint32_t* framebuffer, WorldModel* world, int 
         Vec2 hit_point = position + left_ray * row_distance;
         Vec2 step =  (right_ray - left_ray) * (row_distance / width);
 
-        uint32_t * floor_pixel_row = framebuffer + y * width;
-        uint32_t * ceil_pixel_row = framebuffer + (height - y) * width;
+        uint32_t * floor_pixel_row = &(framebuffer.data())[y * width];
+        uint32_t * ceil_pixel_row = &(framebuffer.data())[(height - y) * width];
 
         for( int x = 0; x < width; ++x ) {
 
@@ -160,7 +196,7 @@ void WorldView::paint_background( uint32_t* framebuffer, WorldModel* world, int 
     }
 }
 
-void WorldView::paint_minimap( uint32_t* framebuffer, WorldModel* world, int width, int height )
+void WorldView::paint_minimap( WorldModel* world )
 {
     constexpr std::array<uint32_t,9> colours
     {
@@ -182,7 +218,7 @@ void WorldView::paint_minimap( uint32_t* framebuffer, WorldModel* world, int wid
             if( cell_type < 9 ) {
                 for( int py = 0; py < unit_size; ++py ) {
                     for( int px = 0; px < unit_size; ++px ) {
-                        framebuffer[(y * unit_size + py) * 1024 + (x * unit_size + px)] = colours[cell_type];
+                        (framebuffer.data())[(y * unit_size + py) * 1024 + (x * unit_size + px)] = colours[cell_type];
                     }
                 }
             }
@@ -190,7 +226,7 @@ void WorldView::paint_minimap( uint32_t* framebuffer, WorldModel* world, int wid
     }
 }
 
-void WorldView::paint_camera( uint32_t* framebuffer, WorldModel* world, int width, int height )
+void WorldView::paint_camera( WorldModel* world )
 {
 	constexpr uint32_t red {0xFFFF0000};
 	constexpr uint32_t green {0xFF00FF00};
@@ -214,16 +250,16 @@ void WorldView::paint_camera( uint32_t* framebuffer, WorldModel* world, int widt
     const Vec2 ray_centre = position + centre_vec * 2.0F;
     const Vec2 ray_right  = position + right_vec * 2.0F;
 
-	draw_line( framebuffer, position, ray_left, blue );
-	draw_line( framebuffer, position, ray_centre, red );
-	draw_line( framebuffer, position, ray_right, blue );
+	draw_line( position, ray_left, blue );
+	draw_line( position, ray_centre, red );
+	draw_line( position, ray_right, blue );
 
-    draw_line( framebuffer, cam_left, cam_right, green );
+    draw_line( cam_left, cam_right, green );
 
-	draw_point( framebuffer, position, 6.0, yellow );
+	draw_point( position, 6.0, yellow );
 }
 
-void WorldView::draw_line( uint32_t* framebuffer, const Vec2& start, const Vec2& end, uint32_t color )
+void WorldView::draw_line( const Vec2& start, const Vec2& end, uint32_t color )
 {
     int x0 = start.x * unit_size;
     int y0 = start.y * unit_size;
@@ -238,7 +274,7 @@ void WorldView::draw_line( uint32_t* framebuffer, const Vec2& start, const Vec2&
 
     while( true ) {
         if( x0 >= 0 && x0 < 1024 && y0 >= 0 && y0 < 800 )
-            framebuffer[y0 * 1024 + x0] = color;
+            (framebuffer.data())[y0 * 1024 + x0] = color;
 
         if( x0 == x1 && y0 == y1 )
             break;
@@ -249,7 +285,7 @@ void WorldView::draw_line( uint32_t* framebuffer, const Vec2& start, const Vec2&
     }
 }
 
-void WorldView::draw_point( uint32_t* framebuffer, const Vec2& position, float size, uint32_t color )
+void WorldView::draw_point( const Vec2& position, float size, uint32_t color )
 {
     int centerX = position.x * unit_size;
     int centerY = position.y * unit_size;
@@ -263,7 +299,7 @@ void WorldView::draw_point( uint32_t* framebuffer, const Vec2& position, float s
                 int drawY = centerY + y;
 
                 if( drawX >= 0 && drawX < 1024 && drawY >= 0 && drawY < 800 )
-                    framebuffer[drawY * 1024 + drawX] = color;
+                    (framebuffer.data())[drawY * 1024 + drawX] = color;
             }
         }
     }
