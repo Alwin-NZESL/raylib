@@ -9,3 +9,5 @@ add_subdirectory( src )
 
 add_subdirectory( raycaster )
 add_subdirectory( bsppainter )
+
+add_subdirectory( rayeditor )
