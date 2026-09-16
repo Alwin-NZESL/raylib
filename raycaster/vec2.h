@@ -38,53 +38,45 @@ struct Vec2
     Vec2() : x(0.0f), y(0.0f) {}
     Vec2( float x, float y ) : x(x), y(y) {}
     Vec2( const Vec2i& other ) : x(static_cast<float>(other.x)), y(static_cast<float>(other.y)) {};
+    Vec2( std::pair<float,float> other ) : x(other.first), y(other.second) {};
 
-    float dot(const Vec2& other) const {
-        return x * other.x + y * other.y;
-    }
-
-    float length() const {
-        return std::sqrt(x * x + y * y);
-    }
-    
-    Vec2 normalized() const {
-        float len = length();
-        return (len > 0) ? Vec2(x / len, y / len) : Vec2(0.0f, 0.0f);
-    }
-
-    Vec2 scale(Vec2 other) const {
-        return Vec2(x * other.x, y * other.y);
-    }
-
-    Vec2i floor() const {
-        return {static_cast<size_t>(std::floor(x)), static_cast<size_t>(std::floor(y))};
-    }
+    float dot(const Vec2& other) const { return x * other.x + y * other.y; }
+    float length() const { return std::sqrt(x * x + y * y); }
+    Vec2 normalized() const { float len = length(); return (len > 0) ? Vec2(x / len, y / len) : Vec2(0.0f, 0.0f); }
+    Vec2 scale(Vec2 other) const { return Vec2(x * other.x, y * other.y); }
+    Vec2i floor() const { return {static_cast<size_t>(std::floor(x)), static_cast<size_t>(std::floor(y))}; }
 };
 
-inline Vec2 operator+(const Vec2& a, const Vec2& b) {
+inline Vec2 operator+(const Vec2& a, const Vec2& b)
+{
     return {a.x + b.x, a.y + b.y};
 }
 
-inline Vec2 operator+=(Vec2& a, const Vec2& b) {
+inline Vec2 operator+=(Vec2& a, const Vec2& b)
+{
     a.x += b.x;
     a.y += b.y;
     return a;
 }
 
-inline Vec2 operator-=(Vec2& a, const Vec2& b) {
+inline Vec2 operator-=(Vec2& a, const Vec2& b)
+{
     a.x -= b.x;
     a.y -= b.y;
     return a;
 }
 
-inline Vec2 operator-(const Vec2& a, const Vec2& b) {
+inline Vec2 operator-(const Vec2& a, const Vec2& b)
+{
     return {a.x - b.x, a.y - b.y};
 }
 
-inline Vec2 operator-(const Vec2& a, const Vec2i& b) {
+inline Vec2 operator-(const Vec2& a, const Vec2i& b)
+{
     return {a.x - static_cast<float>(b.x), a.y - static_cast<float>(b.y)};
 }
 
-inline Vec2 operator*(const Vec2& a, float scalar) {
+inline Vec2 operator*(const Vec2& a, float scalar)
+{
     return {a.x * scalar, a.y * scalar};
 }
