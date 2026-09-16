@@ -18,7 +18,7 @@ public:
     size_t get_height() const { return grid.get_height(); }
     const Grid<Tile>& get_grid() const { return grid; }
 
-    bool contains( int x, int y ) { return grid.valid(x,y); }
+    bool contains( int x, int y ) const { return grid.valid(x,y); }
 
     bool operator==(const Level& other) const { return grid == other.grid && player_position == other.player_position && player_angle == other.player_angle; };
 
