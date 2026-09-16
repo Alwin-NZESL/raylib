@@ -211,14 +211,17 @@ void WorldView::paint_minimap( WorldModel* world )
         0xFF808080  // Gray
     };
 
-    for( size_t y = 0; y < world->get_world_dimension().y; ++y ) {
-        for( size_t x = 0; x < world->get_world_dimension().x; ++x ) {
+    size_t xdim = world->get_world_dimension().x;
+    size_t ydim = world->get_world_dimension().y;
+
+    for( size_t y = 0; y < ydim; ++y ) {
+        for( size_t x = 0; x < xdim; ++x ) {
             uint32_t color = 0xFF000000; // Default to black
             int cell_type = world->get_celltype({x, y});
             if( cell_type < 9 ) {
                 for( int py = 0; py < unit_size; ++py ) {
                     for( int px = 0; px < unit_size; ++px ) {
-                        (framebuffer.data())[(y * unit_size + py) * 1024 + (x * unit_size + px)] = colours[cell_type];
+                        (framebuffer.data())[(y * unit_size + py) * width  + (x * unit_size + px)] = colours[cell_type];
                     }
                 }
             }
@@ -273,8 +276,8 @@ void WorldView::draw_line( const Vec2& start, const Vec2& end, uint32_t color )
     int err = dx - dy;
 
     while( true ) {
-        if( x0 >= 0 && x0 < 1024 && y0 >= 0 && y0 < 800 )
-            (framebuffer.data())[y0 * 1024 + x0] = color;
+        if( x0 >= 0 && x0 < width && y0 >= 0 && y0 < height )
+            (framebuffer.data())[y0 * width + x0] = color;
 
         if( x0 == x1 && y0 == y1 )
             break;
@@ -298,8 +301,8 @@ void WorldView::draw_point( const Vec2& position, float size, uint32_t color )
                 int drawX = centerX + x;
                 int drawY = centerY + y;
 
-                if( drawX >= 0 && drawX < 1024 && drawY >= 0 && drawY < 800 )
-                    (framebuffer.data())[drawY * 1024 + drawX] = color;
+                if( drawX >= 0 && drawX < width && drawY >= 0 && drawY < height )
+                    (framebuffer.data())[drawY * width + drawX] = color;
             }
         }
     }
