@@ -18,10 +18,24 @@
  */
 
 #include <unordered_map>
+#include <fstream>
+#include <iostream>
 
 #include "raylib.h"
 
 #include "world_model.h"
+
+void WorldModel::load_level( std::string filename )
+{
+    std::ifstream file( filename );
+
+    file >> level_data;
+
+	player_position = level_data.get_player_origin();
+	player_angle = level_data.get_player_angle();
+
+}
+
 
 void WorldModel::handle_input()
 {
@@ -50,7 +64,7 @@ void WorldModel::key_state_action( WorldModel::KeyState key_state, bool is_press
 		this->key_state &= ~key_state;
 }
 
-std::pair<int,int> WorldModel::get_background_ids( Vec2 hitpoint )
+std::pair<int,int> WorldModel::get_background_ids( Vec2 hitpoint ) const
 {
     Vec2i cell = hitpoint.floor();
     // int floor_tex_id = ((int(hitpoint.x + hitpoint.y)) & 1) ? 4 : 3; // diagonal floor
@@ -67,10 +81,10 @@ std::pair<int,int> WorldModel::get_background_ids( Vec2 hitpoint )
     return std::make_pair( floor_tex_id, ceil_tex_id );
 }
 
-int WorldModel::get_wall_texture_id( Vec2 hitpoint )
+int WorldModel::get_wall_texture_id( Vec2 hitpoint ) const
 {
     Vec2i cell = hitpoint.floor();
-    int wall_text_id = level[ cell.x + cell.y * world_dimension.x ] - '1';
+    int wall_text_id = level_data.tile( cell.x, cell.y ) - 1;
     
     if( show_generated_textures )
         wall_text_id += 8;
@@ -117,19 +131,17 @@ bool WorldModel::update( float elapsed_time )
     return true;
 }
 
-bool WorldModel::is_wall( Vec2 position )
+bool WorldModel::is_wall( Vec2 position ) const
 {
-    Vec2i cell = position.floor();  
+    Vec2i cell = position.floor();
+    
+    if( ! level_data.contains( cell.x, cell.y ) )
+        return false;
 
-	if( cell.x < 0 || cell.x > world_dimension.x ||
-        cell.y < 0 || cell.y > world_dimension.y
-    )
-		return false;
-
-	return level[cell.x + cell.y * world_dimension.x] != '0';
+    return level_data.tile( cell.x, cell.y ) != 0;
 }
 
-bool WorldModel::cast_ray( int step, int width, float& zoom_factor, int & cell_type, int& walk_side, double& wall_offset )
+bool WorldModel::cast_ray( int step, int width, float& zoom_factor, int & cell_type, int& walk_side, double& wall_offset ) const
 {
 	constexpr size_t x_dim = 0;
 	constexpr size_t y_dim = 1;

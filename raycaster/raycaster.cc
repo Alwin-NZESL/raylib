@@ -24,11 +24,14 @@
 
 int main( int argc, char* argv[] )
 {
-    constexpr int screen_width = 1024;
-    constexpr int screen_height = 800;
+    constexpr int screen_width = 1920;//1024;
+    constexpr int screen_height = 1080;//800;
     
     WorldModel world;
     WorldView view;
+
+    if( argc > 1 )
+        world.load_level( argv[1] );
 
     InitWindow( screen_width, screen_height, "Raycaster test" );
     SetTargetFPS( 60 );
