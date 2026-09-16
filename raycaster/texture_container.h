@@ -31,15 +31,13 @@ class TextureContainer
 public:
 	TextureContainer();
 
-	uint32_t get_colour( uint32_t* tex_buffer, Vec2 tex_coord ) const;
 	uint32_t* get_buffer( int tex_id ) const;
+	uint32_t get_colour( uint32_t* tex_buffer, Vec2 tex_coord ) const;
 
 private:
 	const static int TEXTURE_WIDTH = 64;
 	const static int TEXTURE_HEIGHT = 64;
 	const static int TEXTURE_COUNT = 8;
-
-	const static Vec2 texture_scale;
 
 	std::array<Image, TEXTURE_COUNT * 2> textures;
 

@@ -27,6 +27,25 @@ TextureContainer::TextureContainer()
     load_textures();
 }
 
+uint32_t* TextureContainer::get_buffer( int tex_id ) const
+{
+    if( tex_id < 0 || tex_id >= textures.size() || textures[tex_id].data == nullptr )
+        return nullptr;
+
+    return static_cast<uint32_t*>(textures[tex_id].data);
+}
+
+uint32_t TextureContainer::get_colour( uint32_t* tex_buffer, Vec2 tex_coord ) const
+{
+     // Scale texture coordinates to pixel coordinates and mask to get integer pixel indices
+    auto cx = static_cast<int>(tex_coord.x * TEXTURE_WIDTH) & (TEXTURE_WIDTH - 1);
+    auto cy = static_cast<int>(tex_coord.y * TEXTURE_HEIGHT) & (TEXTURE_HEIGHT - 1);
+
+    size_t index = cy * TEXTURE_WIDTH + cx; // Compute pixel position in the image
+
+    return tex_buffer[index];
+}
+
 void TextureContainer::load_textures()
 {
     textures[8] = LoadImage("textures/redbrick.png");
@@ -81,23 +100,4 @@ void TextureContainer::make_generated_textures()
             data[7][index] = (opaque << 24) + (halftonecolour << 0) + (halftonecolour << 8) + (halftonecolour << 16); // flat grey texture
         }
     }
-}
-
-uint32_t TextureContainer::get_colour( uint32_t* tex_buffer, Vec2 tex_coord ) const
-{
-     // Scale texture coordinates to pixel coordinates and mask to get integer pixel indices
-    auto cx = static_cast<int>(tex_coord.x * TEXTURE_WIDTH) & (TEXTURE_WIDTH - 1);
-    auto cy = static_cast<int>(tex_coord.y * TEXTURE_HEIGHT) & (TEXTURE_HEIGHT - 1);
-
-    size_t index = cy * TEXTURE_WIDTH + cx; // Compute pixel position in the image
-
-    return tex_buffer[index];
-}
-
-uint32_t* TextureContainer::get_buffer( int tex_id ) const
-{
-    if( tex_id < 0 || tex_id >= textures.size() || textures[tex_id].data == nullptr )
-        return nullptr;
-
-    return static_cast<uint32_t*>(textures[tex_id].data);
 }
