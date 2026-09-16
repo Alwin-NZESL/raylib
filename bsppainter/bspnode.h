@@ -1,5 +1,5 @@
 /*
- * renderer.cc Copyright 2026 Alwin Leerling dna.leerling@gmail.com
+ * bspnode.h Copyright 2026 Alwin Leerling dna.leerling@gmail.com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,31 +17,22 @@
  * MA 02110-1301, USA.
  */
 
-#include "renderer.h"
+#pragma once
 
 #include <raylib.h>
+#include <utility>
+#include <vector>
+// #include <functional>
 
-void Renderer::init( const char * title, uint32_t width, uint32_t height, uint32_t fps )
+struct BSPNode
 {
-    InitWindow(width, height, title);
-    SetExitKey(KEY_NULL);
-    SetTargetFPS(fps);
-}
+    BSPNode* front;
+    BSPNode* back;
+    std::pair<Vector2, Vector2> line;
 
-Renderer::~Renderer()
-    { CloseWindow(); }
+    BSPNode() : front(nullptr), back(nullptr) {}
+};
 
-void Renderer::start_frame()
-    { BeginDrawing(); }
-
-void Renderer::end_frame()
-    { EndDrawing(); }
-
-void Renderer::clear( Color color )
-    { ClearBackground(color); }
-
-void Renderer::text( const char* text, int x, int y, int font_size, Color color )
-    { DrawText(text, x, y, font_size, color); }
-
-void Renderer::draw_texture( const Texture2D& texture, int x, int y )
-    { DrawTexture(texture, x, y, GRAY); }
+BSPNode * construct_tree( const std::vector<std::pair<Vector2, Vector2>>& lines );
+void traverse_tree( BSPNode* node, Vector2& camera_pos, std::vector<std::pair<Vector2, Vector2>>& render_order);
+void destruct_tree( BSPNode* node );

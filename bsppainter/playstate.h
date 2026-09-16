@@ -1,5 +1,5 @@
 /*
- * controls.h Copyright 2026 Alwin Leerling dna.leerling@gmail.com
+ * playstate.h Copyright 2026 Alwin Leerling dna.leerling@gmail.com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,21 +19,14 @@
 
 #pragma once
 
-#include <cstdint>
+#include "gamestate.h"
 
-class Controls
-{
-public:   
-    bool do_up();
-    bool do_down();
-    bool do_left();
-    bool do_right();
-    bool do_accept();
-    bool do_cancel();
-    bool do_quit();
-
+class PlayState : public GameState {
+public:
+    PlayState( int level );
+    GameStateCommand input( Controls& controls ) override;
+    void update( float elapsed_time ) override;
+    void render( Renderer& renderer ) override;
 private:
-    bool is_key_pressed( int key );
-    bool is_key_released( int key );
-    bool is_key_down( int key );
+    void load_level( int level );
 };

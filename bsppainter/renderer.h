@@ -17,21 +17,22 @@
  * MA 02110-1301, USA.
  */
 
- #include <cstdint>
+#pragma once
 
- #include <raylib.h>
+#include <cstdint>
 
- class Renderer {
- public:
-     ~Renderer();
+#include <raylib.h>
 
-     void init( const char * title, uint32_t width, uint32_t height, uint32_t fps );
-     bool is_window_open();
-     void shutdown();
+class Renderer {
+public:
+    ~Renderer();
 
-     void start_frame();
-     void end_frame();
+    void init( const char * title, uint32_t width, uint32_t height, uint32_t fps );
 
-     void clear( Color color );
-     void text( const char* text, int x, int y, int font_size, Color color );
- };
+    void start_frame();
+    void end_frame();
+
+    void clear( Color color );
+    void text( const char* text, int x, int y, int font_size, Color color );
+    void draw_texture( const Texture2D& texture, int x, int y );
+};

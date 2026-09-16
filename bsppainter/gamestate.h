@@ -17,55 +17,59 @@
  * MA 02110-1301, USA.
  */
 
-class Renderer;
+#pragma once
+
+#include "renderer.h"
+
 class Controls;
 
-enum class GameStateCommand {
-    NONE,
-    SHOWTITLE,
-    SHOWMENU,
-    STARTPLAY,
-    SHOWCREDITS,
-    QUIT
+struct GameStateCommand {
+    enum Type {
+        NONE,
+        SHOWTITLE,
+        SHOWMENU,
+        STARTPLAY,
+        SHOWCREDITS,
+        QUIT
+    };
+
+    Type type = NONE;
+    int level = 0;
 };
 
 class GameState {
 public:
-    GameState() {};
-    virtual ~GameState() {};
+    GameState();
+    virtual ~GameState();
 
     virtual GameStateCommand input( Controls& controls ) = 0;
-    virtual void update() = 0;
+    virtual void update( float elapsed_time ) = 0;
     virtual void render( Renderer& renderer ) = 0;
+
+protected:
+    Texture2D texture;
 };
 
 class TitleState : public GameState {
 public:
     GameStateCommand input( Controls& controls ) override;
-    void update() override;
+    void update( float elapsed_time ) override;
     void render( Renderer& renderer ) override;
 };
 
 class MenuState : public GameState {
 public:
     GameStateCommand input( Controls& controls ) override;
-    void update() override;
+    void update( float elapsed_time ) override;
     void render( Renderer& renderer ) override;
 
 private:
-    int selected_option = 0;
-};
-
-class PlayState : public GameState {
-public:
-    GameStateCommand input( Controls& controls ) override;
-    void update() override;
-    void render( Renderer& renderer ) override;
+    int selected_option = 1;
 };
 
 class CreditsState : public GameState {
 public:
     GameStateCommand input( Controls& controls ) override;
-    void update() override;
+    void update( float elapsed_time ) override;
     void render( Renderer& renderer ) override;
 };

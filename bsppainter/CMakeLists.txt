@@ -7,6 +7,9 @@ add_executable(
     menustate.cc
     controls.cc
     playstate.cc
+    bspnode.cc
 )
 
 target_link_libraries( bsppainter raylib )
+
+add_subdirectory( resources )

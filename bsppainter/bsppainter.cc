@@ -19,7 +19,10 @@
 
 #include <memory>
 
+#include <raylib.h>
+
 #include "gamestate.h"
+#include "playstate.h"
 #include "renderer.h"
 #include "controls.h"
 
@@ -28,49 +31,43 @@ class BSPPainter
 public:
     BSPPainter();
 
-    void run();
+    bool keep_running() const { return running; }
+    void loop( float delta_time );
+    void quit() { running = false; }
+
 private:
     std::unique_ptr<GameState> currentState;
     Renderer renderer;
     Controls controls;
+    bool running = true;
 
-    bool handle_command( GameStateCommand command );
+    void handle_command( GameStateCommand command );
 };
-
-int main()
-{
-    BSPPainter app;
-    app.run();
-    return 0;
-}
 
 BSPPainter::BSPPainter()
 {
-    currentState = std::make_unique<TitleState>();
     renderer.init("BSP Painter", 800, 600, 60);
+    currentState = std::make_unique<TitleState>();
 }
 
-void BSPPainter::run()
+void BSPPainter::loop( float delta_time )
 {
-    while( renderer.is_window_open() ) {
+    GameStateCommand game_command = currentState->input( controls );
+    if( game_command.type != GameStateCommand::NONE )
+        handle_command( game_command );
 
-        GameStateCommand game_command = currentState->input( controls );
-        if( game_command != GameStateCommand::NONE && handle_command( game_command ) )
-            break;
+    currentState->update( delta_time );
 
-        currentState->update();
+    renderer.start_frame();
 
-        renderer.start_frame();
+    currentState->render( renderer);
 
-        currentState->render( renderer);
-
-        renderer.end_frame();
-    }
+    renderer.end_frame();
 }
 
-bool BSPPainter::handle_command( GameStateCommand command )
+void BSPPainter::handle_command( GameStateCommand command )
 {
-    switch( command ) {
+    switch( command.type ) {
     case GameStateCommand::NONE:
         break;
     case GameStateCommand::SHOWTITLE:
@@ -80,13 +77,30 @@ bool BSPPainter::handle_command( GameStateCommand command )
         currentState = std::make_unique<MenuState>();
         break;
     case GameStateCommand::STARTPLAY:
-        currentState = std::make_unique<PlayState>();
+        currentState = std::make_unique<PlayState>( command.level );
         break;
     case GameStateCommand::SHOWCREDITS:
         currentState = std::make_unique<CreditsState>();
         break;
     case GameStateCommand::QUIT:
-        return true;
+        quit();
+        break;
     }
-    return false;
+}
+
+int main()
+{
+    BSPPainter app;
+
+    while( app.keep_running() ) {
+
+        if( WindowShouldClose() )
+            app.quit();
+
+        const float delta_time = GetFrameTime() * 1000.0F;
+
+        app.loop( delta_time );
+    }
+
+    return 0;
 }

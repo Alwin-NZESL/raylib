@@ -17,19 +17,25 @@
  * MA 02110-1301, USA.
  */
 
-#include "gamestate.h"
+#include "playstate.h"
 #include "renderer.h"
 #include "controls.h"
+#include "bspnode.h"
+
+PlayState::PlayState( int level )
+{
+    load_level(level);
+}
 
 GameStateCommand PlayState::input( Controls& controls )
 {
     if( controls.do_quit() )
-        return GameStateCommand::SHOWMENU;
+        return { GameStateCommand::SHOWMENU };
 
-    return GameStateCommand::NONE;
+    return { GameStateCommand::NONE };
 }
 
-void PlayState::update()
+void PlayState::update( float elapsed_time )
 {
 }
 
@@ -37,4 +43,10 @@ void PlayState::render(Renderer& renderer)
 {
     renderer.clear(RAYWHITE);
     renderer.text("Play screen", 10, 10, 20, DARKGRAY);
+}
+
+void PlayState::load_level( int level )
+{
+    // Load the level data based on the provided level number
+    // This is a placeholder implementation; actual level loading logic would go here
 }

@@ -18,42 +18,55 @@
  */
 
 #include "gamestate.h"
-#include "renderer.h"
 #include "controls.h"
+
+GameState::GameState()
+{
+    Image image = LoadImage("resources/tree.png");       // CPU-side
+    texture = LoadTextureFromImage(image);
+}
+
+GameState::~GameState()
+{
+    UnloadTexture(texture);
+}
 
 GameStateCommand TitleState::input( Controls& controls )
 {
     if( controls.do_accept() )
-        return GameStateCommand::SHOWMENU;
+        return {GameStateCommand::SHOWMENU};
 
-    return GameStateCommand::NONE;
+    return {GameStateCommand::NONE};
 }
 
-void TitleState::update()
+void TitleState::update( float elapsed_time )
 {
 }
 
 void TitleState::render(Renderer& renderer)
 {
-    renderer.clear(RAYWHITE);
-    renderer.text("Binary Space Partitioning Demo", 10, 10, 20, DARKGRAY);
+    renderer.draw_texture(texture, 0, 0);
+    renderer.text("Binary Space Partitioning Demo", 75, 200, 40, RED);
 }
 
 GameStateCommand CreditsState::input( Controls& controls )
 {
     if( controls.do_accept() || controls.do_cancel() )
-        return GameStateCommand::QUIT;
+        return { GameStateCommand::QUIT };
 
-    return GameStateCommand::NONE;
+    return { GameStateCommand::NONE };
 }
 
-void CreditsState::update()
+void CreditsState::update( float elapsed_time )
 {
 
 }
 
 void CreditsState::render( Renderer& renderer )
 {
-    renderer.clear(RAYWHITE);
-    renderer.text("Credits screen", 10, 10, 20, DARKGRAY);
+    renderer.draw_texture(texture, 0, 0);
+    renderer.text("Credits", 50, 200, 30, YELLOW);
+    renderer.text("Ramon Santamaria (Raylib)", 75, 240, 30, YELLOW);
+    renderer.text("John Carmack (inspiration)", 75, 280, 30, YELLOW);
+    renderer.text("Wikipedia (BSP page)", 75, 320, 30, YELLOW);
 }
