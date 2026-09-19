@@ -25,20 +25,12 @@
 #include "world_model.h"
 #include "texture_container.h"
 
-struct Metrics
-{
-    double background_us;
-    double rays_us;
-};
-
 class WorldView
 {
 public:
-    void setup(int width, int height);
+    void setup( int width, int height );
     void render( WorldModel &world );
-    void shutdown() {
-        UnloadTexture( texture );
-    }
+    void shutdown() { UnloadTexture( texture ); }
 
 private:
 	size_t unit_size = 15;
@@ -47,12 +39,7 @@ private:
     std::vector<uint32_t> framebuffer;
     int width;
     int height;
-    Metrics metrics;
 
-    void draw_frame( WorldModel* world );
-    void draw_minimap( WorldModel* world );
-
-    void paint_background( WorldModel* world );
     void paint_rays( WorldModel* world );
     void paint_minimap( WorldModel* world );
     void paint_camera( WorldModel* world );
