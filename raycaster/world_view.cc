@@ -90,23 +90,23 @@ void WorldView::render( WorldModel &world )
 
 void WorldView::paint_rays( WorldModel* world )
 {
-    float zoom_factor;
-    int ray_tex_id;
-    int walk_side;
-    double wall_offset;
-
     for( int x = 0; x < width; ++x ) {
 
-		if( ! world->cast_ray( x, width, zoom_factor, ray_tex_id, walk_side, wall_offset ) )
-            continue;
+        uint32_t* tex_buffer = nullptr;
+        float shading_factor = 1.0F;
+        float wall_height = 0;
+        Vec2 tex_coord{ 0.0, 0.0 };
 
-        int wall_height = height / zoom_factor;
+        const auto hit = world->cast_ray( x, width);
+        if( hit ) {
+            tex_buffer = textures.get_buffer( hit->wall_type );
+            shading_factor = 1.0F - hit->wall_side * 0.35F;
+            wall_height = height / ( hit->distance_to_wall * world->get_player_zoom() );
+            tex_coord.x = hit->wall_offset;
+        }
 
-        int wall_top    = (height - wall_height) / 2;
-        int wall_bottom = (height + wall_height) / 2;
-        float shading_factor = 1.0F - walk_side * 0.35F;
-
-        uint32_t* tex_buffer = textures.get_buffer( ray_tex_id );
+        float wall_top    = (height - wall_height) / 2;
+        float wall_bottom = (height + wall_height) / 2;
 
         int y;
 
@@ -115,7 +115,7 @@ void WorldView::paint_rays( WorldModel* world )
 
         for( ; (y < wall_bottom) && (y < height); ++y ) {
 
-            Vec2 tex_coord{ (float)wall_offset, (y - wall_top)/(float)wall_height };
+            tex_coord.y = (y - wall_top)/wall_height;
             uint32_t ray_colour = textures.get_colour( tex_buffer, tex_coord );
 
             framebuffer.data()[y * width + x] = shade_pixel( ray_colour, shading_factor );

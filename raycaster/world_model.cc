@@ -141,7 +141,7 @@ bool WorldModel::is_wall( Vec2 position ) const
     return level_data.tile( cell.x, cell.y ) != 0;
 }
 
-bool WorldModel::cast_ray( int step, int width, float& zoom_factor, int & cell_type, int& walk_side, double& wall_offset ) const
+std::optional<RayHit> WorldModel::cast_ray( int step, int width ) const
 {
 	constexpr size_t x_dim = 0;
 	constexpr size_t y_dim = 1;
@@ -156,6 +156,7 @@ bool WorldModel::cast_ray( int step, int width, float& zoom_factor, int & cell_t
     std::array<float, 2> ray_length = calc_initial_ray_lengths( player_position, ray_dir, step_size );
 
     bool wall_found = false;
+    size_t walk_side;
 	float current_side_distance = 0.0;
 	constexpr float max_distance = 100.0;
 
@@ -175,27 +176,26 @@ bool WorldModel::cast_ray( int step, int width, float& zoom_factor, int & cell_t
         wall_found = is_wall( cell_to_test );
     }
 
-	if( wall_found ) {
+	if( !wall_found )
+        return std::nullopt;
 
-        const Vec2 hit_point { player_position + ray_dir * current_side_distance };
-        const Vec2 delta = hit_point - player_position;
+    const Vec2 hit_point { player_position + ray_dir * current_side_distance };
 
-        // credit: https://www.youtube.com/watch?v=eOCQfxRQ2pY
-        const float distance = delta.x * std::cos( player_angle ) + delta.y * std::sin( player_angle );
+    const Vec2 delta = hit_point - player_position;
+    const Vec2 offset = hit_point - Vec2(cell_to_test);
 
-        zoom_factor = distance * player_zoom;
+    const float distance = delta.x * std::cos( player_angle ) + delta.y * std::sin( player_angle ); // credit: https://www.youtube.com/watch?v=eOCQfxRQ2pY
 
-        const Vec2 offset = hit_point - Vec2(cell_to_test);
-        const Vec2 offset_corrected {
-            (ray_dir.y < 0) ? 1 - offset.x : offset.x,
-            (ray_dir.x > 0) ? 1 - offset.y : offset.y
-        };
+    const float wall_offset = ( walk_side == y_dim )
+                                    ? ((ray_dir.y < 0) ? 1 - offset.x : offset.x)
+                                    : ((ray_dir.x > 0) ? 1 - offset.y : offset.y);
 
-		cell_type = get_wall_texture_id( cell_to_test );
-        wall_offset = ( walk_side == y_dim ) ? offset_corrected.x : offset_corrected.y;
-    }
-
-    return wall_found;
+    return RayHit {
+        .wall_type = get_wall_texture_id( cell_to_test ),
+        .wall_side = walk_side,
+        .distance_to_wall = distance,
+        .wall_offset = wall_offset
+    };
 }
 
 std::array<float, 2> WorldModel::calc_step_size( const Vec2& ray_dir )

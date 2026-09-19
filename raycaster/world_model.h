@@ -22,9 +22,18 @@
 #include <string>
 #include <array>
 #include <cstdint>
+#include <optional>
 
 #include "vec2.h"
 #include "level.h"
+
+struct RayHit
+{
+    int wall_type;
+    size_t wall_side;
+    float distance_to_wall;
+    float wall_offset;
+};
 
 class WorldModel
 {
@@ -36,7 +45,7 @@ public:
 	float angle_start() const { return player_angle - std::atan( player_zoom ); }
 	float angle_step( float resolution ) const { return 2.0F * std::atan( player_zoom ) / resolution; }
 
-	bool cast_ray( int step, int width, float& zoom_factor, int & cell_type, int& walk_side, double& wall_offset ) const;
+	std::optional<RayHit> cast_ray( int step, int width ) const;
 
 	bool do_show_minimap() const { return show_minimap; }
 
