@@ -3,6 +3,8 @@ project( raylib )
 
 set( CMAKE_CXX_STANDARD 20 )
 
+include_directories( vendor/raygui/src )
+
 add_subdirectory( vendor/raylib )
 add_subdirectory( resources )
 add_subdirectory( src )
