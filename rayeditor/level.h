@@ -9,7 +9,7 @@ using Tile = int;
 class Level
 {
 public:
-    Level(int width, int height) : grid(width, height) {};
+    Level(int width = 24, int height = 24) : grid(width, height) {};
     
     Tile& tile(int x, int y) { return grid.cell(x, y); }
     const Tile& tile(int x, int y) const { return grid.cell(x, y); }
@@ -31,7 +31,7 @@ public:
 private:
     Grid<Tile> grid;
     std::pair<float,float> player_position;
-    float player_angle;
+    float player_angle = 0.0;
 
     friend std::ostream& operator<<( std::ostream& os, const Level& level );
     friend std::istream& operator>>( std::istream& is, Level& level );
@@ -39,14 +39,46 @@ private:
 
 inline std::ostream& operator<<( std::ostream& os, const Level& level )
 {
-    os << level.player_position.first << ' ' << level.player_position.second << ' ' << level.player_angle << '\n';
-    os << level.grid;
+    size_t width = level.grid.get_width();
+    size_t height = level.grid.get_height();
+
+    os << width << " " << height << "\n";
+
+    for (size_t  y = 0; y < height; ++y) {
+        for (size_t  x = 0; x < width; ++x) {
+            if( (level.player_position.first == x) && (level.player_position.second == y) )
+                os << "P ";
+            else
+                os << level.grid.cell(x, y) << " ";
+        }
+
+        os << "\n";
+    }
+    
     return os;
 }
 
 inline std::istream& operator>>( std::istream& is, Level& level )
 {
-    is >> level.player_position.first >> level.player_position.second >> level.player_angle;
-    is >> level.grid;
+    size_t width, height;
+    
+    is >> width >> height;
+
+    level.grid.clear();
+    level.grid.resize(width, height);
+
+    char ch;
+
+    for (size_t  y = 0; y < height; ++y) {
+        for (size_t  x = 0; x < width; ++x) {
+            is >> ch;
+            if( ch == 'P') {
+                level.player_position = std::pair<float, float>( x, y );
+                level.grid.cell(x, y) = 0;
+            } else
+                level.grid.cell(x, y) = (ch - '0');
+        }
+    }
+
     return is;
 }
