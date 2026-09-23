@@ -11,6 +11,9 @@
 #include "raygui.h"
 
 #include "level.h"
+#include <assert.h>
+#include <algorithm>
+#include <unordered_map>
 
 std::array<Color, 10> palette = 
 {
@@ -26,20 +29,135 @@ std::array<Color, 10> palette =
     MAROON
 };
 
-const size_t SQUARE_SIDE=20;
+enum class FileResult {
+    LoadSuccess,
+    SaveSuccess,
+    EmptyFilename,
+    OpenFailed,
+    ReadFailed,
+    WriteFailed
+};
+
+const std::string& get_fileresult_string( FileResult& result)
+{
+    static std::unordered_map<FileResult, std::string> FileResultStrings = {
+        { FileResult::LoadSuccess, "Level loaded" },
+        { FileResult::SaveSuccess, "Level saved" },
+        { FileResult::EmptyFilename, "Enter a filename" },
+        { FileResult::OpenFailed, "Unable to open file" },
+        { FileResult::ReadFailed, "Unable to save level" },
+        { FileResult::WriteFailed, "Unable to load level" },
+    };
+
+    return FileResultStrings[result];
+}
+
+struct TextBoxWrapper
+{
+    TextBoxWrapper( Rectangle b, std::string l ) : bounds(b), label(l) {}
+
+    void paint_box()
+    {
+        GuiLabel({bounds.x, bounds.y, bounds.width, 20}, label.c_str() );
+
+        if( GuiTextBox( {bounds.x, bounds.y + 30, bounds.width, 40}, content.data(), static_cast<int>(content.size()), edit_mode ) )
+            edit_mode = !edit_mode;
+    }
+
+    std::string get_text() const { return std::string( content.data() ); }
+
+    void set_text( std::string text )
+    {
+        const auto len = std::min(text.size(), content.size() - 1);
+        std::copy_n(text.begin(), len, content.begin());
+        content[len] = '\0';        
+    }
+
+    std::array<char, 256> content = {};
+    Rectangle bounds;
+    std::string label;
+    bool edit_mode = false;
+};
+
+size_t calc_side_size( Rectangle bounds, Level &level )
+{
+    size_t horizontal_side_length = bounds.width / level.get_width();
+    size_t vertical_side_length = bounds.height / level.get_height();
+
+    return (vertical_side_length < horizontal_side_length ) ? vertical_side_length : horizontal_side_length;
+}
+
+FileResult save_file( std::string filename, Level &level )
+{
+    if (filename[0] == '\0') return FileResult::EmptyFilename;
+
+    std::ofstream file(filename.data());
+    if (!file) return FileResult::OpenFailed;
+
+    if (!(file << level)) return FileResult::WriteFailed;
+
+    return FileResult::SaveSuccess;
+}
+
+FileResult load_file( std::string filename, Level &level )
+{
+    if (filename[0] == '\0') return FileResult::EmptyFilename;
+
+    std::ifstream file(filename.data());
+    if (!file) return FileResult::OpenFailed;
+
+    Level loaded_level;
+
+    if (!(file >> loaded_level)) return FileResult::ReadFailed;
+
+    level = std::move(loaded_level);
+    return FileResult::LoadSuccess;
+}
+
+void paint_grid( Rectangle bounds, Level &level, std::pair<float, float> &origin, size_t side_size )
+{
+    size_t grid_height = level.get_height();
+    size_t grid_width = level.get_width();
+
+    for (size_t y = 0; y < grid_height; ++y)
+        for (size_t x = 0; x < grid_width; ++x)
+        {
+            DrawRectangle( bounds.x + x * side_size, bounds.y + y * side_size, side_size, side_size, palette.at(level.tile(x, y)));
+            DrawRectangleLines( bounds.x + x * side_size, bounds.y + y * side_size, side_size, side_size, BLACK);
+        }
+
+    DrawCircle( bounds.x + (origin.first + .5) * side_size, bounds.y + (origin.second + .5) * side_size, (side_size / 2) - 1, RED);
+}
+
+void paint_toolbox( Rectangle bounds, int &selected_tile )
+{
+    constexpr float tb_width = 150.0F;
+    constexpr float tb_height = 38.0F;
+    constexpr float tb_horizontal_spacing = 200.0F;
+    constexpr float tb_vertical_spacing = 45.0F;
+
+    for (int i = 0; i < 10; ++i)
+    {
+        bool active = (selected_tile == i);
+
+        Rectangle toggle_bounds = { bounds.x + (i / 5) * tb_horizontal_spacing, bounds.y + (i % 5) * tb_vertical_spacing, tb_width, tb_height};
+
+        GuiToggle(toggle_bounds, (i == 0) ? TextFormat("No wall") : TextFormat("Wall %d", i), &active);
+        DrawRectangle((int)toggle_bounds.x + 8, (int)toggle_bounds.y + 8, 20, 20, palette.at(i));
+        
+        if (active)
+            selected_tile = i;
+    }
+}
 
 int main( int argc, char** argv )
 {
-    Level level( 24, 24 );
-    std::array<char, 256> filename = {};
+    Level level;
     std::string status;
-    bool filename_edit_mode = false;
     int selected_tile = 1;
-
-    if (argc > 1) {
-        const std::string arg = argv[1];
-        std::snprintf(filename.data(), filename.size(), "%s", arg.c_str());
-    }    
+    TextBoxWrapper filename( {600, 130, 330, 20}, "File name:" );
+    TextBoxWrapper width( {600, 30, 80, 40}, "Width" );
+    TextBoxWrapper height( {700, 30, 80, 40}, "Height" );
 
     InitWindow(1024, 600, "Ray Editor");
 
@@ -64,16 +182,16 @@ int main( int argc, char** argv )
     SetTargetFPS(60);
 
     bool dragging = false;
+    Rectangle grid_bounds{20, 20, 560, 560};
+
+    size_t side_size = calc_side_size( grid_bounds, level );
 
     while( !WindowShouldClose() ) {
 
         auto origin = level.get_player_origin();
 
-        int mouse_x = GetMouseX();
-        int mouse_y = GetMouseY();
-
-        int x = (mouse_x / SQUARE_SIDE) -1;
-        int y = (mouse_y / SQUARE_SIDE) -1;
+        int x = (GetMouseX() - grid_bounds.x) / side_size;
+        int y = (GetMouseY() - grid_bounds.y) / side_size;
 
         if( level.contains( x, y ) ) {
             if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && (x == std::floor(origin.first)) && (y == std::floor(origin.second)))
@@ -82,7 +200,7 @@ int main( int argc, char** argv )
             if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
                 if( dragging )
                     level.set_player_origin( {x,y} );
-                else
+                else if( !((x == std::floor(origin.first)) && (y == std::floor(origin.second) )) )
                     level.tile(x, y) = selected_tile;      
             }      
 
@@ -98,90 +216,55 @@ int main( int argc, char** argv )
         BeginDrawing();
         ClearBackground( DARKGREEN );
 
-        for( size_t y = 0; y < level.get_height(); ++y )
-            for( size_t x = 0; x < level.get_width(); ++x ) {
-                DrawRectangle( (x+1) * SQUARE_SIDE, (y+1) * SQUARE_SIDE, SQUARE_SIDE, SQUARE_SIDE, palette.at(level.tile(x,y)) );
-                DrawRectangleLines( (x+1) * SQUARE_SIDE, (y+1) * SQUARE_SIDE, SQUARE_SIDE, SQUARE_SIDE, BLACK );
+        paint_grid( grid_bounds, level, origin, side_size);
+
+        width.paint_box();
+        height.paint_box();
+
+        if( GuiButton({800, 60, 130, 40}, "New") ) {
+            try {
+                int new_width = std::stoi(width.get_text());
+                int new_height = std::stoi(height.get_text());
+
+                if( new_width < 5 || new_height < 5 ) {
+                    status = "Minimum size is 5 x 5";
+                } else if( new_width > 28 || new_height > 28 ) {
+                    status = "Maximum size is 28 x 28";
+                } else {
+                    level = Level( new_width, new_height );
+                    side_size = calc_side_size( grid_bounds, level );
+                    status = "New level";
+                }
+            }
+            catch(...) {
+                status = "Invalid dimensions";
+            }
+        }
+
+        filename.paint_box();
+
+        if( GuiButton({600, 230, 130, 40}, "Load") ) {
+
+            FileResult result = load_file( filename.get_text(), level );
+            if( result == FileResult::LoadSuccess ) {
+                width.set_text( std::to_string(level.get_width()) );
+                height.set_text( std::to_string(level.get_height()) );
+                side_size = calc_side_size( grid_bounds, level );
             }
 
-        GuiLabel({600, 30, 200, 20}, "File name:");
-
-        if (GuiTextBox({600, 60, 330, 40},
-                    filename.data(),
-                    static_cast<int>(filename.size()),
-                    filename_edit_mode)) {
-            filename_edit_mode = !filename_edit_mode;
+            status = get_fileresult_string( result );
         }
 
-        if (GuiButton({600, 130, 130, 40}, "Load")) {
-            do {
-                if (filename[0] == '\0') {
-                    status = "Enter a filename";
-                    break;
-                }         
+        if( GuiButton({800, 230, 130, 40}, "Save") ) {
 
-                std::ifstream file(filename.data());
-                if (!file) {
-                    status = "Unable to open file";
-                    break;
-                }
-
-                Level loaded_level;
-
-                if( !(file >> loaded_level) ) {
-                    status = "Unable to load level";
-                    break;
-                }
-
-                level = std::move( loaded_level );
-                status = "Level loaded";
-            } while(0);
+            FileResult result = save_file( filename.get_text(), level );
+            
+            status = get_fileresult_string( result );
         }
 
-        if (GuiButton({800, 130, 130, 40}, "Save")) {
-            do {
-                if (filename[0] == '\0') {
-                    status = "Enter a filename";
-                    break;
-                }         
+        GuiLabel({600, 290, 330, 40}, status.c_str());
 
-                std::ofstream file(filename.data());
-
-                if (!file) {
-                    status = "Unable to open file";
-                    break;
-                }
-
-                if( !(file << level) ) {
-                    status = "Unable to save level";
-                    break;
-                }
-
-                status = "Level saved";
-
-            } while(0);
-        }
-
-        GuiLabel({600, 190, 330, 40}, status.c_str());
-        
-        for( int i = 0; i < 10; ++i ) {
-
-            bool active = (selected_tile == i);
-
-            Rectangle bounds = { 600.0F + (i/5) * 200.0F, 250.0F + (i%5) * 45.0F, 150.0F, 38.0F };
-
-            if( i == 0 )
-                GuiToggle(bounds, TextFormat("No wall"), &active);
-            else
-                GuiToggle(bounds, TextFormat("Wall %d", i), &active);
-
-            if( active )
-                selected_tile = i;
-
-            DrawRectangle( (int)bounds.x + 8, (int)bounds.y + 8, 20, 20, palette.at(i) );
-        }
-        
-        DrawCircle( (origin.first + 1.5) * SQUARE_SIDE, (origin.second + 1.5) * SQUARE_SIDE, (SQUARE_SIDE/2)-1, RED );
+        paint_toolbox( {600.0F, 350.0F, 0, 0}, selected_tile );
 
         EndDrawing();
     }
