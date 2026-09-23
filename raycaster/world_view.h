@@ -30,7 +30,7 @@ class WorldView
 public:
     void setup( int width, int height );
     void render( WorldModel &world );
-    void shutdown() { UnloadTexture( texture ); }
+    void teardown() { UnloadTexture( texture ); }
 
 private:
 	size_t unit_size = 15;

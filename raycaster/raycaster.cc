@@ -51,7 +51,7 @@ int main( int argc, char* argv[] )
         EndDrawing();
     }
 
-    view.shutdown();
+    view.teardown();
 
     CloseWindow();
 }
