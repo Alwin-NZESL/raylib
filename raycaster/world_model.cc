@@ -31,9 +31,8 @@ void WorldModel::load_level( std::string filename )
 
     file >> level_data;
 
-	player_position = level_data.get_player_origin();
+	player_position = level_data.get_player_origin() + Vec2{0.5,0.5};   // adjust to the centre of the tile
 	player_angle = level_data.get_player_angle();
-
 }
 
 

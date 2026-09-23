@@ -24,14 +24,14 @@
 
 int main( int argc, char* argv[] )
 {
-    constexpr int screen_width = 1920;//1024;
-    constexpr int screen_height = 1080;//800;
+    constexpr int screen_width = 1920;
+    constexpr int screen_height = 1080;
+    const std::string default_level("levels/std_level.lvl");
     
     WorldModel world;
     WorldView view;
 
-    if( argc > 1 )
-        world.load_level( argv[1] );
+    world.load_level( ( argc > 1 ) ? argv[1] : default_level );
 
     InitWindow( screen_width, screen_height, "Raycaster test" );
     SetTargetFPS( 60 );
