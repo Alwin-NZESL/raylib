@@ -14,67 +14,82 @@
 
 #include "level.h"
 
-enum class FileResult {
+enum class OperationStatus {
     LoadSuccess,
     SaveSuccess,
     EmptyFilename,
     OpenFailed,
     ReadFailed,
     WriteFailed,
+    FileMinExceeded,
+    FileMaxExceeded,
+    NewSuccess,
+    InvalidDimensions,
     MinExceeded,
     MaxExceeded
 };
 
-const std::string& get_fileresult_string( FileResult result)
+struct LevelEditResult
 {
-    static const std::unordered_map<FileResult, std::string> FileResultStrings = {
-        { FileResult::LoadSuccess, "Level loaded" },
-        { FileResult::SaveSuccess, "Level saved" },
-        { FileResult::EmptyFilename, "Enter a filename" },
-        { FileResult::OpenFailed, "Unable to open file" },
-        { FileResult::ReadFailed, "Unable to load level" },
-        { FileResult::WriteFailed, "Unable to save level" },
-        { FileResult::MinExceeded, "Invalid file: Minimum size is 5 x 5" },
-        { FileResult::MaxExceeded, "Invalid file: Maximum size is 28 x 28" },
+    OperationStatus result;
+    std::string width;
+    std::string height;
+};
+
+struct EditorActions
+{
+    bool do_new_level = false;
+    bool do_load_level = false;
+    bool do_save_level = false;
+
+    int select_tile = -1;
+    std::string filename;
+    std::string new_width;
+    std::string new_height;
+};
+
+struct UIUpdate
+{
+    bool new_level = false;
+    bool load_level = false;
+    bool save_level = false;
+
+    LevelEditResult new_result;
+    LevelEditResult load_result;
+    LevelEditResult save_result;
+
+    size_t level_width;
+    size_t level_height;
+    std::string status;
+};
+
+
+const std::string& get_fileresult_string( OperationStatus result)
+{
+    static const std::unordered_map<OperationStatus, std::string> FileResultStrings = {
+        { OperationStatus::NewSuccess, "New level" },
+        { OperationStatus::LoadSuccess, "Level loaded" },
+        { OperationStatus::SaveSuccess, "Level saved" },
+        { OperationStatus::EmptyFilename, "Enter a filename" },
+        { OperationStatus::OpenFailed, "Unable to open file" },
+        { OperationStatus::ReadFailed, "Unable to load level" },
+        { OperationStatus::WriteFailed, "Unable to save level" },
+        { OperationStatus::FileMinExceeded, "Invalid file: Minimum size is 5 x 5" },
+        { OperationStatus::FileMaxExceeded, "Invalid file: Maximum size is 28 x 28" },
+        { OperationStatus::InvalidDimensions, "Invalid dimensions" },
+        { OperationStatus::MinExceeded, "Minimum size is 5 x 5" },
+        { OperationStatus::MaxExceeded, "Maximum size is 28 x 28" },
     };
 
     return FileResultStrings.at(result);
 }
 
-enum class NewLevelReturns
-{
-    Success,
-    InvalidDimensions,
-    MinExceeded,
-    MaxExceeded,
-};
-
-const std::string& get_newlevelresult_string( NewLevelReturns result)
-{
-    static const std::unordered_map<NewLevelReturns, std::string> NewLevelResultStrings = {
-        { NewLevelReturns::InvalidDimensions, "Invalid dimensions" },
-        { NewLevelReturns::MinExceeded, "Minimum size is 5 x 5" },
-        { NewLevelReturns::MaxExceeded, "Maximum size is 28 x 28" },
-        { NewLevelReturns::Success, "New level" }
-    };
-
-    return NewLevelResultStrings.at(result);
-}
-
-
-struct LoadLevelReturns
-{
-    FileResult result;
-    std::string width;
-    std::string height;
-};
-
 
 struct EditorState
 {
-    NewLevelReturns new_level( std::string width, std::string height );
-    LoadLevelReturns load_level( std::string filename );
-    FileResult save_level( std::string filename );
+    LevelEditResult new_level( std::string width, std::string height );
+    LevelEditResult load_level( std::string filename );
+    LevelEditResult save_level( std::string filename );
 
     void grab_spawn( int x, int y );
     void drop_spawn();
@@ -87,47 +102,47 @@ struct EditorState
     bool dragging = false;
 };
 
-FileResult EditorState::save_level( std::string filename )
+LevelEditResult EditorState::save_level( std::string filename )
 {
-    if( filename.empty() ) return FileResult::EmptyFilename;
+    if( filename.empty() ) return { OperationStatus::EmptyFilename, "", "" };
 
     std::ofstream file(filename.c_str());
-    if( !file ) return FileResult::OpenFailed;
+    if( !file ) return { OperationStatus::OpenFailed, "", "" };
 
     file << level;
     file.flush();
 
-    if( !file ) return FileResult::WriteFailed;
+    if( !file ) return { OperationStatus::WriteFailed, "", "" };
 
-    return FileResult::SaveSuccess;
+    return { OperationStatus::SaveSuccess, "", "" };
 }
 
-LoadLevelReturns EditorState::load_level( std::string filename )
+LevelEditResult EditorState::load_level( std::string filename )
 {
     if( filename.empty() )
-        return { FileResult::EmptyFilename, "0", "0" };
+        return { OperationStatus::EmptyFilename, "", "" };
 
     std::ifstream file(filename.c_str());
     if (!file)
-        return { FileResult::OpenFailed, "0", "0" };
+        return { OperationStatus::OpenFailed, "", "" };
 
     Level loaded_level;
 
     if (!(file >> loaded_level))
-        return { FileResult::ReadFailed, "0", "0" };
+        return { OperationStatus::ReadFailed, "", "" };
 
     if (loaded_level.get_width() < 5 || loaded_level.get_height() < 5)
-        return { FileResult::MinExceeded, "0", "0" };
+        return { OperationStatus::FileMinExceeded, std::to_string(loaded_level.get_width()), std::to_string(loaded_level.get_height()) };
 
     if (loaded_level.get_width() > 28 || loaded_level.get_height() > 28)
-        return { FileResult::MaxExceeded, "0", "0" };
+        return { OperationStatus::FileMaxExceeded, std::to_string(loaded_level.get_width()), std::to_string(loaded_level.get_height()) };
 
     level = std::move(loaded_level);
 
-    return { FileResult::LoadSuccess, std::to_string(level.get_width()), std::to_string(level.get_height()) };
+    return { OperationStatus::LoadSuccess, std::to_string(level.get_width()), std::to_string(level.get_height()) };
 }
 
-NewLevelReturns EditorState::new_level( std::string width, std::string height )
+LevelEditResult EditorState::new_level( std::string width, std::string height )
 {
     try {
 
@@ -135,16 +150,16 @@ NewLevelReturns EditorState::new_level( std::string width, std::string height )
         int new_height = std::stoi( height );
 
         if( new_width < 5 || new_height < 5 )
-            return NewLevelReturns::MinExceeded;
+            return { OperationStatus::MinExceeded, width, height };
 
         if( new_width > 28 || new_height > 28 )
-            return NewLevelReturns::MaxExceeded;
+            return { OperationStatus::MaxExceeded, width, height };
 
         level = Level(new_width, new_height);
-        return NewLevelReturns::Success;
+        return { OperationStatus::NewSuccess, "", "" };
     }
     catch (...) {
-        return NewLevelReturns::InvalidDimensions;
+        return { OperationStatus::InvalidDimensions, width, height };
     }
 }
     
@@ -208,18 +223,6 @@ struct TextBoxWrapper
     Rectangle bounds;
     std::string label;
     bool edit_mode = false;
-};
-
-struct EditorActions
-{
-    bool do_new_level = false;
-    bool do_load_level = false;
-    bool do_save_level = false;
-
-    int select_tile = -1;
-    std::string filename;
-    std::string new_width;
-    std::string new_height;
 };
 
 struct EditorUI
@@ -351,52 +354,6 @@ EditorActions EditorUI::render_controls( int selected_tile )
     return actions;
 }
 
-struct UIUpdate
-{
-    bool new_level = false;
-    bool load_level = false;
-    bool save_level = false;
-
-    NewLevelReturns new_result;
-    LoadLevelReturns load_result;
-    FileResult save_result;
-
-    size_t level_width;
-    size_t level_height;
-    std::string status;
-};
-
-// void handle_actions( EditorState &editor, EditorUI& ui, EditorActions actions )
-// {
-//     if( actions.do_new_level ) {
-
-//         NewLevelReturns result = editor.new_level( actions.new_width, actions.new_height );
-//         if( result == NewLevelReturns::Success )
-//             ui.calc_side_size( editor.level.get_width(), editor.level.get_height() );
-
-//         ui.status = get_newlevelresult_string( result );
-//     }
-
-//     if( actions.do_load_level ) {
-//         LoadLevelReturns retvalue = editor.load_level( actions.filename );
-//         if( retvalue.result == FileResult::LoadSuccess )
-//         {
-//             ui.width.set_text(retvalue.width);
-//             ui.height.set_text(retvalue.height);
-//             ui.calc_side_size( editor.level.get_width(), editor.level.get_height() );
-//         }
-//         ui.status = get_fileresult_string(retvalue.result);
-//     }
-
-//     if( actions.do_save_level ) {
-//         FileResult result = editor.save_level( actions.filename );
-//         ui.status = get_fileresult_string(result);
-//     }
-
-//     if( actions.select_tile != -1 )
-//         editor.selected_tile = actions.select_tile;
-// }
-
 UIUpdate handle_actions( EditorState &editor, EditorActions actions )
 {
     UIUpdate ret;
@@ -405,28 +362,28 @@ UIUpdate handle_actions( EditorState &editor, EditorActions actions )
         ret.new_level = true;
 
         ret.new_result = editor.new_level( actions.new_width, actions.new_height );
-        if( ret.new_result == NewLevelReturns::Success ) {
+        if( ret.new_result.result == OperationStatus::NewSuccess ) {
             ret.level_width = editor.level.get_width();
             ret.level_height = editor.level.get_height();
         }
-        ret.status = get_newlevelresult_string( ret.new_result );
+        ret.status = get_fileresult_string( ret.new_result.result );
     }
 
     if( actions.do_load_level ) {
         ret.load_level = true;
 
         ret.load_result = editor.load_level( actions.filename );
-        if( ret.load_result.result == FileResult::LoadSuccess ) {
+        if( ret.load_result.result == OperationStatus::LoadSuccess ) {
             ret.level_width = editor.level.get_width();
             ret.level_height = editor.level.get_height();
         }
-        ret.status = get_fileresult_string(ret.load_result.result);
+        ret.status = get_fileresult_string( ret.load_result.result );
     }
 
     if( actions.do_save_level ) {
         ret.save_level = true;
         ret.save_result = editor.save_level( actions.filename );
-        ret.status = get_fileresult_string(ret.save_result);
+        ret.status = get_fileresult_string( ret.save_result.result );
     }
 
     if( actions.select_tile != -1 )
@@ -438,14 +395,14 @@ UIUpdate handle_actions( EditorState &editor, EditorActions actions )
 void update_ui( EditorUI& ui, UIUpdate& update )
 {
     if( update.new_level ) {
-        if( update.new_result == NewLevelReturns::Success )
+        if( update.new_result.result == OperationStatus::NewSuccess )
             ui.calc_side_size( update.level_width, update.level_height );
 
         ui.status = update.status;
     }
 
     if( update.load_level ) {
-        if( update.load_result.result == FileResult::LoadSuccess )
+        if( update.load_result.result == OperationStatus::LoadSuccess )
         {
             ui.width.set_text(update.load_result.width);
             ui.height.set_text(update.load_result.height);
