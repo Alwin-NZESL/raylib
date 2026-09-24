@@ -1,33 +1,18 @@
-#include <fstream>
-#include <array>
-#include <exception>
-#include <iostream>
-#include <string>
 #include <cmath>
-
-#include <raylib.h>
+#include <cassert>
+#include <string>
+#include <vector>
+#include <array>
+#include <unordered_map>
+#include <fstream>
+#include <algorithm>
+#include <utility>
 
 #define RAYGUI_IMPLEMENTATION
-#include "raygui.h"
+#include <raylib.h>
+#include <raygui.h>
 
 #include "level.h"
-#include <assert.h>
-#include <algorithm>
-#include <unordered_map>
-
-std::array<Color, 10> palette = 
-{
-    WHITE,
-    LIGHTGRAY,
-    GRAY,
-    DARKGRAY,
-    YELLOW,
-    GOLD,
-    ORANGE,
-    PINK,
-    RED,
-    MAROON
-};
 
 enum class FileResult {
     LoadSuccess,
@@ -35,28 +20,174 @@ enum class FileResult {
     EmptyFilename,
     OpenFailed,
     ReadFailed,
-    WriteFailed
+    WriteFailed,
+    MinExceeded,
+    MaxExceeded
 };
 
-const std::string& get_fileresult_string( FileResult& result)
+const std::string& get_fileresult_string( FileResult result)
 {
-    static std::unordered_map<FileResult, std::string> FileResultStrings = {
+    static const std::unordered_map<FileResult, std::string> FileResultStrings = {
         { FileResult::LoadSuccess, "Level loaded" },
         { FileResult::SaveSuccess, "Level saved" },
         { FileResult::EmptyFilename, "Enter a filename" },
         { FileResult::OpenFailed, "Unable to open file" },
-        { FileResult::ReadFailed, "Unable to save level" },
-        { FileResult::WriteFailed, "Unable to load level" },
+        { FileResult::ReadFailed, "Unable to load level" },
+        { FileResult::WriteFailed, "Unable to save level" },
+        { FileResult::MinExceeded, "Invalid file: Minimum size is 5 x 5" },
+        { FileResult::MaxExceeded, "Invalid file: Maximum size is 28 x 28" },
     };
 
-    return FileResultStrings[result];
+    return FileResultStrings.at(result);
 }
 
+enum class NewLevelReturns
+{
+    Success,
+    InvalidDimensions,
+    MinExceeded,
+    MaxExceeded,
+};
+
+const std::string& get_newlevelresult_string( NewLevelReturns result)
+{
+    static const std::unordered_map<NewLevelReturns, std::string> NewLevelResultStrings = {
+        { NewLevelReturns::InvalidDimensions, "Invalid dimensions" },
+        { NewLevelReturns::MinExceeded, "Minimum size is 5 x 5" },
+        { NewLevelReturns::MaxExceeded, "Maximum size is 28 x 28" },
+        { NewLevelReturns::Success, "New level" }
+    };
+
+    return NewLevelResultStrings.at(result);
+}
+
+
+struct LoadLevelReturns
+{
+    FileResult result;
+    std::string width;
+    std::string height;
+};
+
+
+struct EditorState
+{
+    NewLevelReturns new_level( std::string width, std::string height );
+    LoadLevelReturns load_level( std::string filename );
+    FileResult save_level( std::string filename );
+
+    void grab_spawn( int x, int y );
+    void drop_spawn();
+
+    void paint_tile( int x, int y );
+    void erase_tile( int x, int y );
+
+    Level level;
+    int selected_tile = 1;
+    bool dragging = false;
+};
+
+FileResult EditorState::save_level( std::string filename )
+{
+    if( filename.empty() ) return FileResult::EmptyFilename;
+
+    std::ofstream file(filename.c_str());
+    if( !file ) return FileResult::OpenFailed;
+
+    file << level;
+    file.flush();
+
+    if( !file ) return FileResult::WriteFailed;
+
+    return FileResult::SaveSuccess;
+}
+
+LoadLevelReturns EditorState::load_level( std::string filename )
+{
+    if( filename.empty() )
+        return { FileResult::EmptyFilename, "0", "0" };
+
+    std::ifstream file(filename.c_str());
+    if (!file)
+        return { FileResult::OpenFailed, "0", "0" };
+
+    Level loaded_level;
+
+    if (!(file >> loaded_level))
+        return { FileResult::ReadFailed, "0", "0" };
+
+    if (loaded_level.get_width() < 5 || loaded_level.get_height() < 5)
+        return { FileResult::MinExceeded, "0", "0" };
+
+    if (loaded_level.get_width() > 28 || loaded_level.get_height() > 28)
+        return { FileResult::MaxExceeded, "0", "0" };
+
+    level = std::move(loaded_level);
+
+    return { FileResult::LoadSuccess, std::to_string(level.get_width()), std::to_string(level.get_height()) };
+}
+
+NewLevelReturns EditorState::new_level( std::string width, std::string height )
+{
+    try {
+
+        int new_width = std::stoi( width );
+        int new_height = std::stoi( height );
+
+        if( new_width < 5 || new_height < 5 )
+            return NewLevelReturns::MinExceeded;
+
+        if( new_width > 28 || new_height > 28 )
+            return NewLevelReturns::MaxExceeded;
+
+        level = Level(new_width, new_height);
+        return NewLevelReturns::Success;
+    }
+    catch (...) {
+        return NewLevelReturns::InvalidDimensions;
+    }
+}
+    
+void EditorState::grab_spawn( int x, int y )
+{
+    auto [spawn_x,spawn_y] = level.get_player_origin();
+
+    if( level.contains( x, y ) &&  (x == std::floor(spawn_x)) && (y == std::floor(spawn_y)) )
+         dragging = true;
+}
+
+void EditorState::drop_spawn( )
+{
+    if( dragging ) {
+        auto [spawn_x,spawn_y] = level.get_player_origin();
+
+        level.tile( std::floor(spawn_x), std::floor(spawn_y) ) = 0;
+        dragging = false;
+    }
+}
+
+void EditorState::paint_tile( int x, int y )
+{
+    if( !level.contains( x, y ) )
+        return;
+
+    if( dragging  )
+        level.set_player_origin( {x,y} );
+    else
+        level.tile(x, y) = selected_tile;      
+}
+
+void EditorState::erase_tile( int x, int y )
+{
+    if( level.contains( x, y ) )
+        level.tile(x, y) = 0;
+}
+    
 struct TextBoxWrapper
 {
     TextBoxWrapper( Rectangle b, std::string l ) : bounds(b), label(l) {}
 
-    void paint_box()
+    void render_control()
     {
         GuiLabel({bounds.x, bounds.y, bounds.width, 20}, label.c_str() );
 
@@ -79,64 +210,105 @@ struct TextBoxWrapper
     bool edit_mode = false;
 };
 
-size_t calc_side_size( Rectangle bounds, Level &level )
+struct EditorActions
 {
-    size_t horizontal_side_length = bounds.width / level.get_width();
-    size_t vertical_side_length = bounds.height / level.get_height();
+    bool do_new_level = false;
+    bool do_load_level = false;
+    bool do_save_level = false;
 
-    return (vertical_side_length < horizontal_side_length ) ? vertical_side_length : horizontal_side_length;
+    int select_tile = -1;
+    std::string filename;
+    std::string new_width;
+    std::string new_height;
+};
+
+struct EditorUI
+{
+    void setup( const Level& state );
+
+    EditorActions render_controls( int selected_tile );
+    void render_grid( const Level& level );
+    int GUIToolBox( int selected_tile, Rectangle bounds );
+
+    void calc_side_size( size_t width, size_t height );
+
+    Rectangle grid_bounds{20, 20, 560, 560};
+
+    size_t side_size = 0;
+    std::string status;
+
+    TextBoxWrapper filename{{600, 130, 330, 20}, "File name:"};
+    TextBoxWrapper width{{600, 30, 80, 40}, "Width"};
+    TextBoxWrapper height{{700, 30, 80, 40}, "Height"};
+};
+
+std::array<Color, 10> palette = 
+{
+    WHITE,
+    LIGHTGRAY,
+    GRAY,
+    DARKGRAY,
+    YELLOW,
+    GOLD,
+    ORANGE,
+    PINK,
+    RED,
+    MAROON
+};
+
+void EditorUI::setup( const Level& level )
+{
+    static std::vector<std::pair<int,int>> styles {
+        { TEXT_SIZE, 20 },
+        { TEXT_COLOR_NORMAL,   0xF0F0F0FF },  // Normal controls
+        { BASE_COLOR_NORMAL,   0x356B50FF },
+        { BORDER_COLOR_NORMAL, 0x183D2AFF },
+        { TEXT_COLOR_FOCUSED,   0xFFFFFFFF }, // Focused controls
+        { BASE_COLOR_FOCUSED,   0x478C68FF },
+        { BORDER_COLOR_FOCUSED, 0xA0D8B5FF },
+        { TEXT_COLOR_PRESSED,   0xFFFFFFFF }, // Pressed controls
+        { BASE_COLOR_PRESSED,   0x244B38FF },
+        { BORDER_COLOR_PRESSED, 0xA0D8B5FF },    
+    };
+
+    for( auto style : styles )
+        GuiSetStyle( DEFAULT, style.first, style.second );
+
+    calc_side_size( level.get_width(), level.get_height() );
 }
 
-FileResult save_file( std::string filename, Level &level )
+void EditorUI::calc_side_size( size_t width, size_t height )
 {
-    if (filename[0] == '\0') return FileResult::EmptyFilename;
+    size_t horizontal_side_length = grid_bounds.width / width;
+    size_t vertical_side_length = grid_bounds.height / height;
 
-    std::ofstream file(filename.data());
-    if (!file) return FileResult::OpenFailed;
-
-    if (!(file << level)) return FileResult::WriteFailed;
-
-    return FileResult::SaveSuccess;
+    side_size = (vertical_side_length < horizontal_side_length ) ? vertical_side_length : horizontal_side_length;
 }
 
-FileResult load_file( std::string filename, Level &level )
-{
-    if (filename[0] == '\0') return FileResult::EmptyFilename;
-
-    std::ifstream file(filename.data());
-    if (!file) return FileResult::OpenFailed;
-
-    Level loaded_level;
-
-    if (!(file >> loaded_level)) return FileResult::ReadFailed;
-
-    level = std::move(loaded_level);
-    return FileResult::LoadSuccess;
-}
-
-void paint_grid( Rectangle bounds, Level &level, std::pair<float, float> &origin, size_t side_size )
+void EditorUI::render_grid( const Level& level )
 {
     size_t grid_height = level.get_height();
     size_t grid_width = level.get_width();
+    std::pair<float, float> origin = level.get_player_origin();
 
     for (size_t y = 0; y < grid_height; ++y)
         for (size_t x = 0; x < grid_width; ++x)
         {
-            DrawRectangle( bounds.x + x * side_size, bounds.y + y * side_size, side_size, side_size, palette.at(level.tile(x, y)));
-            DrawRectangleLines( bounds.x + x * side_size, bounds.y + y * side_size, side_size, side_size, BLACK);
+            DrawRectangle( grid_bounds.x + x * side_size, grid_bounds.y + y * side_size, side_size, side_size, palette.at(level.tile(x, y)));
+            DrawRectangleLines( grid_bounds.x + x * side_size, grid_bounds.y + y * side_size, side_size, side_size, BLACK);
         }
 
-    DrawCircle( bounds.x + (origin.first + .5) * side_size, bounds.y + (origin.second + .5) * side_size, (side_size / 2) - 1, RED);
+    DrawCircle( grid_bounds.x + (origin.first + .5) * side_size, grid_bounds.y + (origin.second + .5) * side_size, (side_size / 2) - 1, RED);
 }
 
-void paint_toolbox( Rectangle bounds, int &selected_tile )
+int EditorUI::GUIToolBox( int selected_tile, Rectangle bounds )
 {
     constexpr float tb_width = 150.0F;
     constexpr float tb_height = 38.0F;
     constexpr float tb_horizontal_spacing = 200.0F;
     constexpr float tb_vertical_spacing = 45.0F;
 
-    for (int i = 0; i < 10; ++i)
+    for( int i = 0; i < 10; ++i )
     {
         bool active = (selected_tile == i);
 
@@ -148,128 +320,201 @@ void paint_toolbox( Rectangle bounds, int &selected_tile )
         if (active)
             selected_tile = i;
     }
+
+    return selected_tile;
 }
 
-int main( int argc, char** argv )
+EditorActions EditorUI::render_controls( int selected_tile )
 {
-    Level level;
+    EditorActions actions;
+
+    width.render_control();
+    height.render_control();
+    actions.do_new_level = GuiButton({800, 60, 130, 40}, "New");
+
+    if( actions.do_new_level ) {
+        actions.new_width = width.get_text();
+        actions.new_height = height.get_text();
+    }
+
+    filename.render_control();
+    actions.do_load_level = GuiButton({600, 230, 130, 40}, "Load");
+    actions.do_save_level = GuiButton({800, 230, 130, 40}, "Save");
+
+    if( actions.do_load_level || actions.do_save_level )
+        actions.filename = filename.get_text();
+
+    GuiLabel({600, 290, 330, 40}, status.c_str());
+
+    actions.select_tile = GUIToolBox( selected_tile, {600.0F, 350.0F, 0, 0});
+
+    return actions;
+}
+
+struct UIUpdate
+{
+    bool new_level = false;
+    bool load_level = false;
+    bool save_level = false;
+
+    NewLevelReturns new_result;
+    LoadLevelReturns load_result;
+    FileResult save_result;
+
+    size_t level_width;
+    size_t level_height;
     std::string status;
-    int selected_tile = 1;
-    TextBoxWrapper filename( {600, 130, 330, 20}, "File name:" );
-    TextBoxWrapper width( {600, 30, 80, 40}, "Width" );
-    TextBoxWrapper height( {700, 30, 80, 40}, "Height" );
+};
 
-    InitWindow(1024, 600, "Ray Editor");
+// void handle_actions( EditorState &editor, EditorUI& ui, EditorActions actions )
+// {
+//     if( actions.do_new_level ) {
 
-    // General text size
-    GuiSetStyle(DEFAULT, TEXT_SIZE, 20);
+//         NewLevelReturns result = editor.new_level( actions.new_width, actions.new_height );
+//         if( result == NewLevelReturns::Success )
+//             ui.calc_side_size( editor.level.get_width(), editor.level.get_height() );
 
-    // Normal controls
-    GuiSetStyle(DEFAULT, TEXT_COLOR_NORMAL,   0xF0F0F0FF);
-    GuiSetStyle(DEFAULT, BASE_COLOR_NORMAL,   0x356B50FF);
-    GuiSetStyle(DEFAULT, BORDER_COLOR_NORMAL, 0x183D2AFF);
+//         ui.status = get_newlevelresult_string( result );
+//     }
 
-    // Focused controls
-    GuiSetStyle(DEFAULT, TEXT_COLOR_FOCUSED,   0xFFFFFFFF);
-    GuiSetStyle(DEFAULT, BASE_COLOR_FOCUSED,   0x478C68FF);
-    GuiSetStyle(DEFAULT, BORDER_COLOR_FOCUSED, 0xA0D8B5FF);
+//     if( actions.do_load_level ) {
+//         LoadLevelReturns retvalue = editor.load_level( actions.filename );
+//         if( retvalue.result == FileResult::LoadSuccess )
+//         {
+//             ui.width.set_text(retvalue.width);
+//             ui.height.set_text(retvalue.height);
+//             ui.calc_side_size( editor.level.get_width(), editor.level.get_height() );
+//         }
+//         ui.status = get_fileresult_string(retvalue.result);
+//     }
 
-    // Pressed controls
-    GuiSetStyle(DEFAULT, TEXT_COLOR_PRESSED,   0xFFFFFFFF);
-    GuiSetStyle(DEFAULT, BASE_COLOR_PRESSED,   0x244B38FF);
-    GuiSetStyle(DEFAULT, BORDER_COLOR_PRESSED, 0xA0D8B5FF);    
+//     if( actions.do_save_level ) {
+//         FileResult result = editor.save_level( actions.filename );
+//         ui.status = get_fileresult_string(result);
+//     }
 
-    SetTargetFPS(60);
+//     if( actions.select_tile != -1 )
+//         editor.selected_tile = actions.select_tile;
+// }
 
-    bool dragging = false;
-    Rectangle grid_bounds{20, 20, 560, 560};
+UIUpdate handle_actions( EditorState &editor, EditorActions actions )
+{
+    UIUpdate ret;
 
-    size_t side_size = calc_side_size( grid_bounds, level );
+    if( actions.do_new_level ) {
+        ret.new_level = true;
 
-    while( !WindowShouldClose() ) {
+        ret.new_result = editor.new_level( actions.new_width, actions.new_height );
+        if( ret.new_result == NewLevelReturns::Success ) {
+            ret.level_width = editor.level.get_width();
+            ret.level_height = editor.level.get_height();
+        }
+        ret.status = get_newlevelresult_string( ret.new_result );
+    }
 
-        auto origin = level.get_player_origin();
+    if( actions.do_load_level ) {
+        ret.load_level = true;
+
+        ret.load_result = editor.load_level( actions.filename );
+        if( ret.load_result.result == FileResult::LoadSuccess ) {
+            ret.level_width = editor.level.get_width();
+            ret.level_height = editor.level.get_height();
+        }
+        ret.status = get_fileresult_string(ret.load_result.result);
+    }
+
+    if( actions.do_save_level ) {
+        ret.save_level = true;
+        ret.save_result = editor.save_level( actions.filename );
+        ret.status = get_fileresult_string(ret.save_result);
+    }
+
+    if( actions.select_tile != -1 )
+        editor.selected_tile = actions.select_tile;
+
+    return ret;
+}
+
+void update_ui( EditorUI& ui, UIUpdate& update )
+{
+    if( update.new_level ) {
+        if( update.new_result == NewLevelReturns::Success )
+            ui.calc_side_size( update.level_width, update.level_height );
+
+        ui.status = update.status;
+    }
+
+    if( update.load_level ) {
+        if( update.load_result.result == FileResult::LoadSuccess )
+        {
+            ui.width.set_text(update.load_result.width);
+            ui.height.set_text(update.load_result.height);
+            ui.calc_side_size( update.level_width, update.level_height );
+        }
+        ui.status = update.status;
+    }
+
+    if( update.save_level )
+        ui.status = update.status;
+}
+
+void handle_grid_input( EditorState& editor, Rectangle grid_bounds, size_t side_size )
+{
+    if( GetMouseX() > grid_bounds.x && GetMouseY() > grid_bounds.y ) {
 
         int x = (GetMouseX() - grid_bounds.x) / side_size;
         int y = (GetMouseY() - grid_bounds.y) / side_size;
 
-        if( level.contains( x, y ) ) {
-            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && (x == std::floor(origin.first)) && (y == std::floor(origin.second)))
-                dragging = true;
+        if( IsMouseButtonPressed(MOUSE_BUTTON_LEFT) )
+            editor.grab_spawn( x, y );
 
-            if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-                if( dragging )
-                    level.set_player_origin( {x,y} );
-                else if( !((x == std::floor(origin.first)) && (y == std::floor(origin.second) )) )
-                    level.tile(x, y) = selected_tile;      
-            }      
+        if( IsMouseButtonDown(MOUSE_BUTTON_LEFT) )
+            editor.paint_tile( x, y );
 
-            if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
-                level.tile(x, y) = 0;
-        }
+        if( IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) )
+            editor.erase_tile( x, y );
+    }
 
-        if( dragging && IsMouseButtonReleased( MOUSE_BUTTON_LEFT) ) {
-            level.tile(origin.first, origin.second) = 0;
-            dragging = false;
-        }
+    if( IsMouseButtonReleased( MOUSE_BUTTON_LEFT) )
+        editor.drop_spawn();
+}
+
+int main(int argc, char **argv)
+{
+    EditorState editor;
+    EditorUI ui;
+
+    InitWindow(1024, 600, "A-Maze-Thing Leveller");
+    SetTargetFPS(60);
+
+    ui.setup( editor.level );
+
+    while( !WindowShouldClose() ) {
+
+        handle_grid_input( editor, ui.grid_bounds, ui.side_size );
 
         BeginDrawing();
-        ClearBackground( DARKGREEN );
 
-        paint_grid( grid_bounds, level, origin, side_size);
+            ClearBackground(DARKGREEN);
 
-        width.paint_box();
-        height.paint_box();
+            ui.render_grid( editor.level );
 
-        if( GuiButton({800, 60, 130, 40}, "New") ) {
-            try {
-                int new_width = std::stoi(width.get_text());
-                int new_height = std::stoi(height.get_text());
-
-                if( new_width < 5 || new_height < 5 ) {
-                    status = "Minimum size is 5 x 5";
-                } else if( new_width > 28 || new_height > 28 ) {
-                    status = "Maximum size is 28 x 28";
-                } else {
-                    level = Level( new_width, new_height );
-                    side_size = calc_side_size( grid_bounds, level );
-                    status = "New level";
-                }
-            }
-            catch(...) {
-                status = "Invalid dimensions";
-            }
-        }
-
-        filename.paint_box();
-
-        if( GuiButton({600, 230, 130, 40}, "Load") ) {
-
-            FileResult result = load_file( filename.get_text(), level );
-            if( result == FileResult::LoadSuccess ) {
-                width.set_text( std::to_string(level.get_width()) );
-                height.set_text( std::to_string(level.get_height()) );
-                side_size = calc_side_size( grid_bounds, level );
-            }
-
-            status = get_fileresult_string( result );
-        }
-
-        if( GuiButton({800, 230, 130, 40}, "Save") ) {
-
-            FileResult result = save_file( filename.get_text(), level );
-            
-            status = get_fileresult_string( result );
-        }
-
-        GuiLabel({600, 290, 330, 40}, status.c_str());
-
-        paint_toolbox( {600.0F, 350.0F, 0, 0}, selected_tile );
+            EditorActions actions = ui.render_controls( editor.selected_tile );
 
         EndDrawing();
+
+        UIUpdate update = handle_actions( editor, actions );
+
+        update_ui( ui, update );
     }
 
     CloseWindow();
 
     return 0;
 }
+
+
+
+
+
+
