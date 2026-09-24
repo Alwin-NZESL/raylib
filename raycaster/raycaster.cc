@@ -33,7 +33,7 @@ int main( int argc, char* argv[] )
 
     world.load_level( ( argc > 1 ) ? argv[1] : default_level );
 
-    InitWindow( screen_width, screen_height, "Raycaster test" );
+    InitWindow( screen_width, screen_height, "A-Maze-Thing" );
     SetTargetFPS( 60 );
 
     view.setup(screen_width, screen_height);
