@@ -1,0 +1,145 @@
+#include <unordered_map>
+
+#define RAYGUI_IMPLEMENTATION
+
+#include "amazeui.h"
+
+void AMazeUI::transform_coords( UICapture& capture )
+{
+    if( capture.x > grid_bounds.x && capture.y > grid_bounds.y )
+        capture.grid_coords = std::make_pair( (capture.x - grid_bounds.x) / side_size, (capture.y - grid_bounds.y) / side_size );
+}
+
+const std::string& AMazeUI::get_status_string( LevelEditResult::OperationStatus result)
+{
+    static const std::unordered_map<LevelEditResult::OperationStatus, std::string> FileResultStrings = {
+        { LevelEditResult::OperationStatus::NewSuccess, "New level" },
+        { LevelEditResult::OperationStatus::LoadSuccess, "Level loaded" },
+        { LevelEditResult::OperationStatus::SaveSuccess, "Level saved" },
+        { LevelEditResult::OperationStatus::EmptyFilename, "Enter a filename" },
+        { LevelEditResult::OperationStatus::OpenFailed, "Unable to open file" },
+        { LevelEditResult::OperationStatus::ReadFailed, "Unable to load level" },
+        { LevelEditResult::OperationStatus::WriteFailed, "Unable to save level" },
+        { LevelEditResult::OperationStatus::FileMinExceeded, "Invalid file: Minimum size is 5 x 5" },
+        { LevelEditResult::OperationStatus::FileMaxExceeded, "Invalid file: Maximum size is 28 x 28" },
+        { LevelEditResult::OperationStatus::InvalidDimensions, "Invalid dimensions" },
+        { LevelEditResult::OperationStatus::MinExceeded, "Minimum size is 5 x 5" },
+        { LevelEditResult::OperationStatus::MaxExceeded, "Maximum size is 28 x 28" },
+    };
+
+    return FileResultStrings.at(result);
+}
+
+
+void AMazeUI::setup( const Level& level )
+{
+    static std::vector<std::pair<int,int>> styles {
+        { TEXT_SIZE, 20 },
+        { TEXT_COLOR_NORMAL,   0xF0F0F0FF },  // Normal controls
+        { BASE_COLOR_NORMAL,   0x356B50FF },
+        { BORDER_COLOR_NORMAL, 0x183D2AFF },
+        { TEXT_COLOR_FOCUSED,   0xFFFFFFFF }, // Focused controls
+        { BASE_COLOR_FOCUSED,   0x478C68FF },
+        { BORDER_COLOR_FOCUSED, 0xA0D8B5FF },
+        { TEXT_COLOR_PRESSED,   0xFFFFFFFF }, // Pressed controls
+        { BASE_COLOR_PRESSED,   0x244B38FF },
+        { BORDER_COLOR_PRESSED, 0xA0D8B5FF },    
+    };
+
+    for( auto style : styles )
+        GuiSetStyle( DEFAULT, style.first, style.second );
+
+    width.set_text( std::to_string( level.get_width() ) );
+    height.set_text( std::to_string( level.get_height() ) );
+
+    calc_side_size( level.get_width(), level.get_height() );
+}
+
+void AMazeUI::calc_side_size( size_t width, size_t height )
+{
+    size_t horizontal_side_length = grid_bounds.width / width;
+    size_t vertical_side_length = grid_bounds.height / height;
+
+    side_size = (vertical_side_length < horizontal_side_length ) ? vertical_side_length : horizontal_side_length;
+}
+
+void AMazeUI::render_grid( const Level& level )
+{
+    size_t grid_height = level.get_height();
+    size_t grid_width = level.get_width();
+    std::pair<float, float> origin = level.get_player_origin();
+
+    for (size_t y = 0; y < grid_height; ++y)
+        for (size_t x = 0; x < grid_width; ++x)
+        {
+            DrawRectangle( grid_bounds.x + x * side_size, grid_bounds.y + y * side_size, side_size, side_size, palette.at(level.tile(x, y)));
+            DrawRectangleLines( grid_bounds.x + x * side_size, grid_bounds.y + y * side_size, side_size, side_size, BLACK);
+        }
+
+    DrawCircle( grid_bounds.x + (origin.first + .5) * side_size, grid_bounds.y + (origin.second + .5) * side_size, (side_size / 2) - 1, RED);
+}
+
+int AMazeUI::render_toolbox( int selected_tile, Rectangle bounds )
+{
+    constexpr float tb_width = 150.0F;
+    constexpr float tb_height = 38.0F;
+    constexpr float tb_horizontal_spacing = 200.0F;
+    constexpr float tb_vertical_spacing = 45.0F;
+
+    for( int i = 0; i < 10; ++i )
+    {
+        bool active = (selected_tile == i);
+
+        Rectangle toggle_bounds = { bounds.x + (i / 5) * tb_horizontal_spacing, bounds.y + (i % 5) * tb_vertical_spacing, tb_width, tb_height};
+
+        GuiToggle(toggle_bounds, (i == 0) ? TextFormat("No wall") : TextFormat("Wall %d", i), &active);
+        DrawRectangle((int)toggle_bounds.x + 8, (int)toggle_bounds.y + 8, 20, 20, palette.at(i));
+        
+        if (active)
+            selected_tile = i;
+    }
+
+    return selected_tile;
+}
+
+EditorActions AMazeUI::render(  const Level& level, int selected_tile )
+{
+    EditorActions actions;
+
+    render_grid( level );
+
+    width.render_control();
+    height.render_control();
+    actions.do_new_level = GuiButton({800, 60, 130, 40}, "New");
+
+    if( actions.do_new_level ) {
+        actions.new_width = width.get_text();
+        actions.new_height = height.get_text();
+    }
+
+    filename.render_control();
+    actions.do_load_level = GuiButton({600, 230, 130, 40}, "Load");
+    actions.do_save_level = GuiButton({800, 230, 130, 40}, "Save");
+
+    if( actions.do_load_level || actions.do_save_level )
+        actions.filename = filename.get_text();
+
+    GuiLabel({600, 290, 330, 40}, status.c_str());
+
+    actions.select_tile = render_toolbox( selected_tile, {600.0F, 350.0F, 0, 0});
+
+    return actions;
+}
+
+void AMazeUI::update( const LevelEditResult& update )
+{
+    status = get_status_string( update.result );
+
+    if( update.result == LevelEditResult::OperationStatus::NewSuccess  || update.result == LevelEditResult::OperationStatus::LoadSuccess )
+        calc_side_size( update.width, update.height );
+
+    if( update.result == LevelEditResult::OperationStatus::LoadSuccess ) {
+        width.set_text( std::to_string( update.width ) );
+        height.set_text( std::to_string( update.height ) );
+    }
+}

@@ -45,6 +45,8 @@ add_executable(
     rayeditor
 
     rayeditor.cc
+    amazeui.cc
+    amazeditor.cc
 )
 
 target_link_libraries(
