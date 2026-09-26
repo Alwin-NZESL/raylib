@@ -32,7 +32,7 @@ class AMazeUI
 public:    
     void setup( const Level& state );
     EditorAction render(  const Level& level, int selected_tile );
-    void update( const EditorResult& update );
+    void process( const EditorResult& update );
 
     void transform_coords( UICapture& capture );
     Rectangle get_grid_bounds() const { return grid_bounds; }

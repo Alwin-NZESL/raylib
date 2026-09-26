@@ -154,7 +154,7 @@ EditorAction AMazeUI::render(  const Level& level, int selected_tile )
     return actions;
 }
 
-void AMazeUI::update( const EditorResult& update )
+void AMazeUI::process( const EditorResult& update )
 {
     status = get_status_string( update.result );
 

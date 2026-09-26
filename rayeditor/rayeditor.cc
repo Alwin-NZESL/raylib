@@ -69,7 +69,7 @@ int main(int argc, char **argv)
         EndDrawing();
 
         if( auto update = editor.process_action( action ) )
-            ui.update( *update );
+            ui.process( *update );
     }
 
     CloseWindow();
