@@ -31,10 +31,21 @@ void TextBoxWrapper::render_control()
         edit_mode = !edit_mode;
 }
 
+void TextBoxWrapper::render_label()
+{
+    GuiLabel({left, top, width, height}, label.c_str() );
+}
+
 void TextBoxWrapper::set_text( std::string text )
 {
     const auto len = std::min(text.size(), content.size() - 1);
     std::copy_n(text.begin(), len, content.begin());
     content[len] = '\0';        
 }
+
+void TextBoxWrapper::set_label( std::string text )
+{
+    label = text;
+}
+
 

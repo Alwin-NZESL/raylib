@@ -25,10 +25,13 @@
 class TextBoxWrapper
 {
 public:    
-    TextBoxWrapper( float left, float top, float width, std::string l )
-        : left(left), top(top), width(width), label(l) {}
+    TextBoxWrapper( float left, float top, float width, float height, std::string l )
+        : left(left), top(top), width(width), height(height), label(l) {}
 
     void render_control();
+    void render_label();
+
+    void set_label( std::string text );
     void set_text( std::string text );
 
     std::string get_text() const { return std::string( content.data() ); }
@@ -38,6 +41,7 @@ private:
     float left;
     float top;
     float width;
+    float height;
     std::string label;
     bool edit_mode = false;
 };

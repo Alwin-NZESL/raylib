@@ -37,13 +37,11 @@ public:
 
 private:
     size_t side_size = 0;
-    std::string status;
-    TextBoxWrapper filename{ 600, 130, 330, "File name:"};
-    TextBoxWrapper width{600, 30, 80, "Width"};
-    TextBoxWrapper height{700, 30, 80, "Height"};
 
-    void render_grid( const Level& level );
-    int render_toolbox( int selected_tile );
+    TextBoxWrapper filename{ 600, 130, 330, 70, "File name:"};
+    TextBoxWrapper width{600, 30, 80, 70, "Width"};
+    TextBoxWrapper height{700, 30, 80, 70, "Height"};
+    TextBoxWrapper message{600, 290, 330, 40, ""};
+
     void calc_side_size( size_t width, size_t height );
-    const std::string& get_status_string( EditorResult::OperationStatus result);
 };

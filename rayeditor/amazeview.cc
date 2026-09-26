@@ -36,15 +36,109 @@ namespace
         DARKGRAY, YELLOW, GOLD,
         ORANGE, PINK, RED, MAROON
     };
+
+    void set_styles()
+    {
+        const std::array<std::pair<int,int>, 10> styles { {
+            { TEXT_SIZE, 20 },
+            { TEXT_COLOR_NORMAL,   0xF0F0F0FF },  // Normal controls
+            { BASE_COLOR_NORMAL,   0x356B50FF },
+            { BORDER_COLOR_NORMAL, 0x183D2AFF },
+            { TEXT_COLOR_FOCUSED,   0xFFFFFFFF }, // Focused controls
+            { BASE_COLOR_FOCUSED,   0x478C68FF },
+            { BORDER_COLOR_FOCUSED, 0xA0D8B5FF },
+            { TEXT_COLOR_PRESSED,   0xFFFFFFFF }, // Pressed controls
+            { BASE_COLOR_PRESSED,   0x244B38FF },
+            { BORDER_COLOR_PRESSED, 0xA0D8B5FF },    
+        }};
+
+        for( const auto& style : styles )
+            GuiSetStyle( DEFAULT, style.first, style.second );
+    }
+
+    void render_grid( const Grid<Tile>& grid, size_t side_size, std::pair<float, float> origin )
+    {
+        for (size_t y = 0; y < grid.get_height(); ++y)
+            for (size_t x = 0; x < grid.get_width(); ++x)
+            {
+                DrawRectangle( GridLeft + x * side_size, GridTop + y * side_size, side_size, side_size, palette.at( grid.cell(x, y) ));
+                DrawRectangleLines( GridLeft + x * side_size, GridTop + y * side_size, side_size, side_size, BLACK);
+            }
+
+        DrawCircle( GridLeft + (origin.first + .5) * side_size, GridTop + (origin.second + .5) * side_size, (side_size / 2) - 1, RED);
+    }
+
+    int render_toolbox( int selected_tile )
+    {
+        constexpr float tb_width = 150.0F;
+        constexpr float tb_height = 38.0F;
+        constexpr float tb_horizontal_spacing = 200.0F;
+        constexpr float tb_vertical_spacing = 45.0F;
+        Rectangle bounds{600.0F, 350.0F, 0, 0};
+
+        for( int i = 0; i < 10; ++i )
+        {
+            bool active = (selected_tile == i);
+
+            Rectangle toggle_bounds = { bounds.x + (i / 5) * tb_horizontal_spacing, bounds.y + (i % 5) * tb_vertical_spacing, tb_width, tb_height};
+
+            GuiToggle(toggle_bounds, (i == 0) ? TextFormat("No wall") : TextFormat("Wall %d", i), &active);
+            DrawRectangle((int)toggle_bounds.x + 8, (int)toggle_bounds.y + 8, 20, 20, palette.at(i));
+            
+            if (active)
+                selected_tile = i;
+        }
+
+        return selected_tile;
+    }
+
+    EditorAction::Action render_buttons()
+    {
+        if( GuiButton({800, 60, 130, 40}, "New") )
+            return EditorAction::Action::New;
+
+        if( GuiButton({600, 230, 130, 40}, "Load") )
+            return EditorAction::Action::Load;
+
+        if( GuiButton({800, 230, 130, 40}, "Save") )
+            return EditorAction::Action::Save;
+
+        return EditorAction::Action::None;
+    }
 }
 
-void AMazeView::transform_coords( UICapture& capture )
+void AMazeView::setup( const Level& level )
 {
-    if( capture.x > GridLeft && capture.y > GridTop )
-        capture.grid_coords = std::make_pair( (capture.x - GridLeft) / side_size, (capture.y - GridTop) / side_size );
+    set_styles();
+
+    width.set_text( std::to_string( level.get_width() ) );
+    height.set_text( std::to_string( level.get_height() ) );
+
+    calc_side_size( level.get_width(), level.get_height() );
 }
 
-const std::string& AMazeView::get_status_string( EditorResult::OperationStatus result)
+EditorAction AMazeView::render(  const Level& level, int selected_tile )
+{
+    EditorAction actions;
+
+    render_grid( level.get_grid(), side_size, level.get_player_origin() );
+
+    width.render_control();
+    height.render_control();
+    filename.render_control();
+    message.render_label();
+
+    actions.action = render_buttons();
+
+    actions.new_width = width.get_text();
+    actions.new_height = height.get_text();
+    actions.filename = filename.get_text();
+    actions.select_tile = render_toolbox( selected_tile );
+
+    return actions;
+}
+
+void AMazeView::process( const EditorResult& update )
 {
     static const std::unordered_map<EditorResult::OperationStatus, std::string> FileResultStrings = {
         { EditorResult::OperationStatus::NewSuccess, "New level" },
@@ -61,118 +155,7 @@ const std::string& AMazeView::get_status_string( EditorResult::OperationStatus r
         { EditorResult::OperationStatus::MaxExceeded, "Maximum size is 28 x 28" },
     };
 
-    return FileResultStrings.at(result);
-}
-
-
-void AMazeView::setup( const Level& level )
-{
-    static std::vector<std::pair<int,int>> styles {
-        { TEXT_SIZE, 20 },
-        { TEXT_COLOR_NORMAL,   0xF0F0F0FF },  // Normal controls
-        { BASE_COLOR_NORMAL,   0x356B50FF },
-        { BORDER_COLOR_NORMAL, 0x183D2AFF },
-        { TEXT_COLOR_FOCUSED,   0xFFFFFFFF }, // Focused controls
-        { BASE_COLOR_FOCUSED,   0x478C68FF },
-        { BORDER_COLOR_FOCUSED, 0xA0D8B5FF },
-        { TEXT_COLOR_PRESSED,   0xFFFFFFFF }, // Pressed controls
-        { BASE_COLOR_PRESSED,   0x244B38FF },
-        { BORDER_COLOR_PRESSED, 0xA0D8B5FF },    
-    };
-
-    for( auto style : styles )
-        GuiSetStyle( DEFAULT, style.first, style.second );
-
-    width.set_text( std::to_string( level.get_width() ) );
-    height.set_text( std::to_string( level.get_height() ) );
-
-    calc_side_size( level.get_width(), level.get_height() );
-}
-
-void AMazeView::calc_side_size( size_t width, size_t height )
-{
-    size_t horizontal_side_length = GridSize / width;
-    size_t vertical_side_length = GridSize / height;
-
-    side_size = (vertical_side_length < horizontal_side_length ) ? vertical_side_length : horizontal_side_length;
-}
-
-void AMazeView::render_grid( const Level& level )
-{
-    size_t grid_height = level.get_height();
-    size_t grid_width = level.get_width();
-    std::pair<float, float> origin = level.get_player_origin();
-
-    for (size_t y = 0; y < grid_height; ++y)
-        for (size_t x = 0; x < grid_width; ++x)
-        {
-            DrawRectangle( GridLeft + x * side_size, GridTop + y * side_size, side_size, side_size, palette.at(level.tile(x, y)));
-            DrawRectangleLines( GridLeft + x * side_size, GridTop + y * side_size, side_size, side_size, BLACK);
-        }
-
-    DrawCircle( GridLeft + (origin.first + .5) * side_size, GridTop + (origin.second + .5) * side_size, (side_size / 2) - 1, RED);
-}
-
-int AMazeView::render_toolbox( int selected_tile )
-{
-    constexpr float tb_width = 150.0F;
-    constexpr float tb_height = 38.0F;
-    constexpr float tb_horizontal_spacing = 200.0F;
-    constexpr float tb_vertical_spacing = 45.0F;
-    Rectangle bounds{600.0F, 350.0F, 0, 0};
-
-    for( int i = 0; i < 10; ++i )
-    {
-        bool active = (selected_tile == i);
-
-        Rectangle toggle_bounds = { bounds.x + (i / 5) * tb_horizontal_spacing, bounds.y + (i % 5) * tb_vertical_spacing, tb_width, tb_height};
-
-        GuiToggle(toggle_bounds, (i == 0) ? TextFormat("No wall") : TextFormat("Wall %d", i), &active);
-        DrawRectangle((int)toggle_bounds.x + 8, (int)toggle_bounds.y + 8, 20, 20, palette.at(i));
-        
-        if (active)
-            selected_tile = i;
-    }
-
-    return selected_tile;
-}
-
-EditorAction AMazeView::render(  const Level& level, int selected_tile )
-{
-    EditorAction actions;
-
-    render_grid( level );
-
-    width.render_control();
-    height.render_control();
-
-    if( GuiButton({800, 60, 130, 40}, "New") ) {
-        actions.action = EditorAction::Action::New;
-        actions.new_width = width.get_text();
-        actions.new_height = height.get_text();
-    }
-
-    filename.render_control();
-    if( GuiButton({600, 230, 130, 40}, "Load") ) {
-        actions.action = EditorAction::Action::Load;
-        actions.filename = filename.get_text();
-    }
-
-    if( GuiButton({800, 230, 130, 40}, "Save") ) {
-        actions.action = EditorAction::Action::Save;
-        actions.filename = filename.get_text();
-    }
-
-    GuiLabel({600, 290, 330, 40}, status.c_str());
-
-    actions.select_tile = render_toolbox( selected_tile );
-
-    return actions;
-}
-
-void AMazeView::process( const EditorResult& update )
-{
-    status = get_status_string( update.result );
+    message.set_label( FileResultStrings.at(update.result) );
 
     if( update.result == EditorResult::OperationStatus::NewSuccess  || update.result == EditorResult::OperationStatus::LoadSuccess )
         calc_side_size( update.width, update.height );
@@ -181,4 +164,18 @@ void AMazeView::process( const EditorResult& update )
         width.set_text( std::to_string( update.width ) );
         height.set_text( std::to_string( update.height ) );
     }
+}
+
+void AMazeView::transform_coords( UICapture& capture )
+{
+    if( capture.x > GridLeft && capture.y > GridTop )
+        capture.grid_coords = std::make_pair( (capture.x - GridLeft) / side_size, (capture.y - GridTop) / side_size );
+}
+
+void AMazeView::calc_side_size( size_t width, size_t height )
+{
+    size_t horizontal_side_length = GridSize / width;
+    size_t vertical_side_length = GridSize / height;
+
+    side_size = (vertical_side_length < horizontal_side_length ) ? vertical_side_length : horizontal_side_length;
 }
