@@ -29,21 +29,21 @@ void AMazeUI::transform_coords( UICapture& capture )
         capture.grid_coords = std::make_pair( (capture.x - grid_bounds.x) / side_size, (capture.y - grid_bounds.y) / side_size );
 }
 
-const std::string& AMazeUI::get_status_string( LevelEditResult::OperationStatus result)
+const std::string& AMazeUI::get_status_string( EditorResult::OperationStatus result)
 {
-    static const std::unordered_map<LevelEditResult::OperationStatus, std::string> FileResultStrings = {
-        { LevelEditResult::OperationStatus::NewSuccess, "New level" },
-        { LevelEditResult::OperationStatus::LoadSuccess, "Level loaded" },
-        { LevelEditResult::OperationStatus::SaveSuccess, "Level saved" },
-        { LevelEditResult::OperationStatus::EmptyFilename, "Enter a filename" },
-        { LevelEditResult::OperationStatus::OpenFailed, "Unable to open file" },
-        { LevelEditResult::OperationStatus::ReadFailed, "Unable to load level" },
-        { LevelEditResult::OperationStatus::WriteFailed, "Unable to save level" },
-        { LevelEditResult::OperationStatus::FileMinExceeded, "Invalid file: Minimum size is 5 x 5" },
-        { LevelEditResult::OperationStatus::FileMaxExceeded, "Invalid file: Maximum size is 28 x 28" },
-        { LevelEditResult::OperationStatus::InvalidDimensions, "Invalid dimensions" },
-        { LevelEditResult::OperationStatus::MinExceeded, "Minimum size is 5 x 5" },
-        { LevelEditResult::OperationStatus::MaxExceeded, "Maximum size is 28 x 28" },
+    static const std::unordered_map<EditorResult::OperationStatus, std::string> FileResultStrings = {
+        { EditorResult::OperationStatus::NewSuccess, "New level" },
+        { EditorResult::OperationStatus::LoadSuccess, "Level loaded" },
+        { EditorResult::OperationStatus::SaveSuccess, "Level saved" },
+        { EditorResult::OperationStatus::EmptyFilename, "Enter a filename" },
+        { EditorResult::OperationStatus::OpenFailed, "Unable to open file" },
+        { EditorResult::OperationStatus::ReadFailed, "Unable to load level" },
+        { EditorResult::OperationStatus::WriteFailed, "Unable to save level" },
+        { EditorResult::OperationStatus::FileMinExceeded, "Invalid file: Minimum size is 5 x 5" },
+        { EditorResult::OperationStatus::FileMaxExceeded, "Invalid file: Maximum size is 28 x 28" },
+        { EditorResult::OperationStatus::InvalidDimensions, "Invalid dimensions" },
+        { EditorResult::OperationStatus::MinExceeded, "Minimum size is 5 x 5" },
+        { EditorResult::OperationStatus::MaxExceeded, "Maximum size is 28 x 28" },
     };
 
     return FileResultStrings.at(result);
@@ -121,9 +121,9 @@ int AMazeUI::render_toolbox( int selected_tile, Rectangle bounds )
     return selected_tile;
 }
 
-EditorActions AMazeUI::render(  const Level& level, int selected_tile )
+EditorAction AMazeUI::render(  const Level& level, int selected_tile )
 {
-    EditorActions actions;
+    EditorAction actions;
 
     render_grid( level );
 
@@ -131,19 +131,19 @@ EditorActions AMazeUI::render(  const Level& level, int selected_tile )
     height.render_control();
 
     if( GuiButton({800, 60, 130, 40}, "New") ) {
-        actions.action = EditorActions::Action::New;
+        actions.action = EditorAction::Action::New;
         actions.new_width = width.get_text();
         actions.new_height = height.get_text();
     }
 
     filename.render_control();
     if( GuiButton({600, 230, 130, 40}, "Load") ) {
-        actions.action = EditorActions::Action::Load;
+        actions.action = EditorAction::Action::Load;
         actions.filename = filename.get_text();
     }
 
     if( GuiButton({800, 230, 130, 40}, "Save") ) {
-        actions.action = EditorActions::Action::Save;
+        actions.action = EditorAction::Action::Save;
         actions.filename = filename.get_text();
     }
 
@@ -154,14 +154,14 @@ EditorActions AMazeUI::render(  const Level& level, int selected_tile )
     return actions;
 }
 
-void AMazeUI::update( const LevelEditResult& update )
+void AMazeUI::update( const EditorResult& update )
 {
     status = get_status_string( update.result );
 
-    if( update.result == LevelEditResult::OperationStatus::NewSuccess  || update.result == LevelEditResult::OperationStatus::LoadSuccess )
+    if( update.result == EditorResult::OperationStatus::NewSuccess  || update.result == EditorResult::OperationStatus::LoadSuccess )
         calc_side_size( update.width, update.height );
 
-    if( update.result == LevelEditResult::OperationStatus::LoadSuccess ) {
+    if( update.result == EditorResult::OperationStatus::LoadSuccess ) {
         width.set_text( std::to_string( update.width ) );
         height.set_text( std::to_string( update.height ) );
     }

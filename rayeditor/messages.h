@@ -37,7 +37,7 @@ struct UICapture
     std::optional<std::pair<int, int>> grid_coords;
 };
 
-struct EditorActions
+struct EditorAction
 {
     enum class Action {
         None,
@@ -53,7 +53,7 @@ struct EditorActions
     int select_tile = -1;
 };
 
-struct LevelEditResult
+struct EditorResult
 {
     enum class OperationStatus {
         LoadSuccess,

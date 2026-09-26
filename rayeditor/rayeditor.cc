@@ -64,7 +64,7 @@ int main(int argc, char **argv)
 
             ClearBackground(DARKGREEN);
 
-            EditorActions actions = ui.render( editor.get_level(), editor.get_selected_tile() );
+            EditorAction actions = ui.render( editor.get_level(), editor.get_selected_tile() );
 
         EndDrawing();
 

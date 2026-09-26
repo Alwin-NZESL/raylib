@@ -31,8 +31,8 @@ class AMazeUI
 {
 public:    
     void setup( const Level& state );
-    EditorActions render(  const Level& level, int selected_tile );
-    void update( const LevelEditResult& update );
+    EditorAction render(  const Level& level, int selected_tile );
+    void update( const EditorResult& update );
 
     void transform_coords( UICapture& capture );
     Rectangle get_grid_bounds() const { return grid_bounds; }
@@ -55,5 +55,5 @@ private:
     void render_grid( const Level& level );
     int render_toolbox( int selected_tile, Rectangle bounds );
     void calc_side_size( size_t width, size_t height );
-    const std::string& get_status_string( LevelEditResult::OperationStatus result);
+    const std::string& get_status_string( EditorResult::OperationStatus result);
 };

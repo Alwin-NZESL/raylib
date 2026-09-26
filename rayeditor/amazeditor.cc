@@ -42,15 +42,15 @@ void AMazEditor::handle_input( const UICapture& input )
         erase_tile( x, y );
 }
 
-std::optional<LevelEditResult> AMazEditor::handle_actions( const EditorActions& actions )
+std::optional<EditorResult> AMazEditor::handle_actions( const EditorAction& actions )
 {
-    if( actions.action == EditorActions::Action::New )
+    if( actions.action == EditorAction::Action::New )
         return new_level( actions.new_width, actions.new_height );
 
-    if( actions.action == EditorActions::Action::Load )
+    if( actions.action == EditorAction::Action::Load )
         return load_level( actions.filename );
 
-    if( actions.action == EditorActions::Action::Save )
+    if( actions.action == EditorAction::Action::Save )
         return save_level( actions.filename );
 
     if( actions.select_tile != -1 )
@@ -59,50 +59,50 @@ std::optional<LevelEditResult> AMazEditor::handle_actions( const EditorActions& 
     return std::nullopt;
 }
 
-LevelEditResult AMazEditor::save_level( std::string filename )
+EditorResult AMazEditor::save_level( std::string filename )
 {
     if( filename.empty() )
-        return { LevelEditResult::OperationStatus::EmptyFilename };
+        return { EditorResult::OperationStatus::EmptyFilename };
 
     std::ofstream file(filename.c_str());
     if( !file )
-        return { LevelEditResult::OperationStatus::OpenFailed, 0, 0 };
+        return { EditorResult::OperationStatus::OpenFailed, 0, 0 };
 
     file << level;
     file.flush();
 
     if( !file )
-        return { LevelEditResult::OperationStatus::WriteFailed, 0, 0 };
+        return { EditorResult::OperationStatus::WriteFailed, 0, 0 };
 
-    return { LevelEditResult::OperationStatus::SaveSuccess, 0, 0 };
+    return { EditorResult::OperationStatus::SaveSuccess, 0, 0 };
 }
 
-LevelEditResult AMazEditor::load_level( std::string filename )
+EditorResult AMazEditor::load_level( std::string filename )
 {
     if( filename.empty() )
-        return { LevelEditResult::OperationStatus::EmptyFilename, 0, 0 };
+        return { EditorResult::OperationStatus::EmptyFilename, 0, 0 };
 
     std::ifstream file(filename.c_str());
     if (!file)
-        return { LevelEditResult::OperationStatus::OpenFailed, 0, 0 };
+        return { EditorResult::OperationStatus::OpenFailed, 0, 0 };
 
     Level loaded_level;
 
     if (!(file >> loaded_level))
-        return { LevelEditResult::OperationStatus::ReadFailed, 0, 0 };
+        return { EditorResult::OperationStatus::ReadFailed, 0, 0 };
 
     if (loaded_level.get_width() < 5 || loaded_level.get_height() < 5)
-        return { LevelEditResult::OperationStatus::FileMinExceeded, loaded_level.get_width(), loaded_level.get_height() };
+        return { EditorResult::OperationStatus::FileMinExceeded, loaded_level.get_width(), loaded_level.get_height() };
 
     if (loaded_level.get_width() > 28 || loaded_level.get_height() > 28)
-        return { LevelEditResult::OperationStatus::FileMaxExceeded, loaded_level.get_width(), loaded_level.get_height() };
+        return { EditorResult::OperationStatus::FileMaxExceeded, loaded_level.get_width(), loaded_level.get_height() };
 
     level = std::move(loaded_level);
 
-    return { LevelEditResult::OperationStatus::LoadSuccess, level.get_width(), level.get_height() };
+    return { EditorResult::OperationStatus::LoadSuccess, level.get_width(), level.get_height() };
 }
 
-LevelEditResult AMazEditor::new_level( std::string width, std::string height )
+EditorResult AMazEditor::new_level( std::string width, std::string height )
 {
     size_t new_width;
     size_t new_height;
@@ -112,20 +112,20 @@ LevelEditResult AMazEditor::new_level( std::string width, std::string height )
         new_height = std::stoi( height );
     }
     catch( std::invalid_argument const& ex ) {
-        return { LevelEditResult::OperationStatus::InvalidDimensions, 0, 0 };
+        return { EditorResult::OperationStatus::InvalidDimensions, 0, 0 };
     }
     catch( std::out_of_range const& ex ) {
-        return { LevelEditResult::OperationStatus::InvalidDimensions, 0, 0 };
+        return { EditorResult::OperationStatus::InvalidDimensions, 0, 0 };
     }
 
     if( new_width < 5 || new_height < 5 )
-        return { LevelEditResult::OperationStatus::MinExceeded, new_width, new_height };
+        return { EditorResult::OperationStatus::MinExceeded, new_width, new_height };
 
     if( new_width > 28 || new_height > 28 )
-        return { LevelEditResult::OperationStatus::MaxExceeded, new_width, new_height };
+        return { EditorResult::OperationStatus::MaxExceeded, new_width, new_height };
 
     level = Level( new_width, new_height );
-    return { LevelEditResult::OperationStatus::NewSuccess, new_width, new_height };
+    return { EditorResult::OperationStatus::NewSuccess, new_width, new_height };
 }
     
 void AMazEditor::grab_spawn( int x, int y )
