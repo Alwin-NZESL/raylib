@@ -39,14 +39,18 @@ struct UICapture
 
 struct EditorActions
 {
-    bool do_new_level = false;
-    bool do_load_level = false;
-    bool do_save_level = false;
+    enum class Action {
+        None,
+        New,
+        Load,
+        Save
+    };
 
-    int select_tile = -1;
+    Action action = Action::None;
     std::string filename;
     std::string new_width;
     std::string new_height;
+    int select_tile = -1;
 };
 
 struct LevelEditResult

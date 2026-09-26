@@ -44,13 +44,13 @@ void AMazEditor::handle_input( const UICapture& input )
 
 std::optional<LevelEditResult> AMazEditor::handle_actions( const EditorActions& actions )
 {
-    if( actions.do_new_level )
+    if( actions.action == EditorActions::Action::New )
         return new_level( actions.new_width, actions.new_height );
 
-    if( actions.do_load_level )
+    if( actions.action == EditorActions::Action::Load )
         return load_level( actions.filename );
 
-    if( actions.do_save_level )
+    if( actions.action == EditorActions::Action::Save )
         return save_level( actions.filename );
 
     if( actions.select_tile != -1 )

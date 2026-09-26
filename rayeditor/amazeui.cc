@@ -129,19 +129,23 @@ EditorActions AMazeUI::render(  const Level& level, int selected_tile )
 
     width.render_control();
     height.render_control();
-    actions.do_new_level = GuiButton({800, 60, 130, 40}, "New");
 
-    if( actions.do_new_level ) {
+    if( GuiButton({800, 60, 130, 40}, "New") ) {
+        actions.action = EditorActions::Action::New;
         actions.new_width = width.get_text();
         actions.new_height = height.get_text();
     }
 
     filename.render_control();
-    actions.do_load_level = GuiButton({600, 230, 130, 40}, "Load");
-    actions.do_save_level = GuiButton({800, 230, 130, 40}, "Save");
-
-    if( actions.do_load_level || actions.do_save_level )
+    if( GuiButton({600, 230, 130, 40}, "Load") ) {
+        actions.action = EditorActions::Action::Load;
         actions.filename = filename.get_text();
+    }
+
+    if( GuiButton({800, 230, 130, 40}, "Save") ) {
+        actions.action = EditorActions::Action::Save;
+        actions.filename = filename.get_text();
+    }
 
     GuiLabel({600, 290, 330, 40}, status.c_str());
 
