@@ -27,7 +27,7 @@
 #include "messages.h"
 #include "textboxwrapper.h"
 
-class AMazeUI
+class AMazeView
 {
 public:    
     void setup( const Level& state );

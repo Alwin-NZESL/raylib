@@ -22,7 +22,7 @@
 #include "messages.h"
 
 #include <amazeditor.h>
-#include <amazeui.h>
+#include <amazeview.h>
 
 #include <raylib.h>
 
@@ -46,7 +46,7 @@ std::optional<UICapture> get_input()
 int main(int argc, char **argv)
 {
     AMazEditor editor;
-    AMazeUI ui;
+    AMazeView ui;
 
     InitWindow(1024, 600, "A-Maze-Thing Leveller");
     SetTargetFPS(60);

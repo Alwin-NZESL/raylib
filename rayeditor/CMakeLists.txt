@@ -45,7 +45,7 @@ add_executable(
     rayeditor
 
     rayeditor.cc
-    amazeui.cc
+    amazeview.cc
     amazeditor.cc
 )
 

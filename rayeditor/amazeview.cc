@@ -21,15 +21,15 @@
 
 #define RAYGUI_IMPLEMENTATION
 
-#include "amazeui.h"
+#include "amazeview.h"
 
-void AMazeUI::transform_coords( UICapture& capture )
+void AMazeView::transform_coords( UICapture& capture )
 {
     if( capture.x > grid_bounds.x && capture.y > grid_bounds.y )
         capture.grid_coords = std::make_pair( (capture.x - grid_bounds.x) / side_size, (capture.y - grid_bounds.y) / side_size );
 }
 
-const std::string& AMazeUI::get_status_string( EditorResult::OperationStatus result)
+const std::string& AMazeView::get_status_string( EditorResult::OperationStatus result)
 {
     static const std::unordered_map<EditorResult::OperationStatus, std::string> FileResultStrings = {
         { EditorResult::OperationStatus::NewSuccess, "New level" },
@@ -50,7 +50,7 @@ const std::string& AMazeUI::get_status_string( EditorResult::OperationStatus res
 }
 
 
-void AMazeUI::setup( const Level& level )
+void AMazeView::setup( const Level& level )
 {
     static std::vector<std::pair<int,int>> styles {
         { TEXT_SIZE, 20 },
@@ -74,7 +74,7 @@ void AMazeUI::setup( const Level& level )
     calc_side_size( level.get_width(), level.get_height() );
 }
 
-void AMazeUI::calc_side_size( size_t width, size_t height )
+void AMazeView::calc_side_size( size_t width, size_t height )
 {
     size_t horizontal_side_length = grid_bounds.width / width;
     size_t vertical_side_length = grid_bounds.height / height;
@@ -82,7 +82,7 @@ void AMazeUI::calc_side_size( size_t width, size_t height )
     side_size = (vertical_side_length < horizontal_side_length ) ? vertical_side_length : horizontal_side_length;
 }
 
-void AMazeUI::render_grid( const Level& level )
+void AMazeView::render_grid( const Level& level )
 {
     size_t grid_height = level.get_height();
     size_t grid_width = level.get_width();
@@ -98,7 +98,7 @@ void AMazeUI::render_grid( const Level& level )
     DrawCircle( grid_bounds.x + (origin.first + .5) * side_size, grid_bounds.y + (origin.second + .5) * side_size, (side_size / 2) - 1, RED);
 }
 
-int AMazeUI::render_toolbox( int selected_tile, Rectangle bounds )
+int AMazeView::render_toolbox( int selected_tile, Rectangle bounds )
 {
     constexpr float tb_width = 150.0F;
     constexpr float tb_height = 38.0F;
@@ -121,7 +121,7 @@ int AMazeUI::render_toolbox( int selected_tile, Rectangle bounds )
     return selected_tile;
 }
 
-EditorAction AMazeUI::render(  const Level& level, int selected_tile )
+EditorAction AMazeView::render(  const Level& level, int selected_tile )
 {
     EditorAction actions;
 
@@ -154,7 +154,7 @@ EditorAction AMazeUI::render(  const Level& level, int selected_tile )
     return actions;
 }
 
-void AMazeUI::process( const EditorResult& update )
+void AMazeView::process( const EditorResult& update )
 {
     status = get_status_string( update.result );
 
