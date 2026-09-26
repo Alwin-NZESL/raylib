@@ -22,7 +22,7 @@
 #include <fstream>
 #include <cmath>
 
-void AMazEditor::handle_input( const UICapture& input )
+void AMazEditor::process_input( const UICapture& input )
 {
     if( input.type == UICapture::Type::LeftReleased )
         drop_spawn();
@@ -42,7 +42,7 @@ void AMazEditor::handle_input( const UICapture& input )
         erase_tile( x, y );
 }
 
-std::optional<EditorResult> AMazEditor::handle_actions( const EditorAction& actions )
+std::optional<EditorResult> AMazEditor::process_action( const EditorAction& actions )
 {
     if( actions.action == EditorAction::Action::New )
         return new_level( actions.new_width, actions.new_height );

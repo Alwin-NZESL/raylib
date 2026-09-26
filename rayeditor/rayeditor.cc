@@ -57,18 +57,18 @@ int main(int argc, char **argv)
 
         if( auto input = get_input() ) {
             ui.transform_coords( *input );
-            editor.handle_input( *input );
+            editor.process_input( *input );
         }
 
         BeginDrawing();
 
             ClearBackground(DARKGREEN);
 
-            EditorAction actions = ui.render( editor.get_level(), editor.get_selected_tile() );
+            EditorAction action = ui.render( editor.get_level(), editor.get_selected_tile() );
 
         EndDrawing();
 
-        if( auto update = editor.handle_actions( actions ) )
+        if( auto update = editor.process_action( action ) )
             ui.update( *update );
     }
 

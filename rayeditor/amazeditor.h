@@ -28,8 +28,8 @@
 class AMazEditor
 {
 public:    
-    void handle_input( const UICapture& input );
-    std::optional<EditorResult> handle_actions( const EditorAction& actions );
+    void process_input( const UICapture& input );
+    std::optional<EditorResult> process_action( const EditorAction& actions );
 
     int get_selected_tile() const { return selected_tile; }
     const Level& get_level() const { return level; }
