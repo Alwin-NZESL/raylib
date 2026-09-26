@@ -20,13 +20,28 @@
 #include <unordered_map>
 
 #define RAYGUI_IMPLEMENTATION
+#include <raylib.h>
+#include <raygui.h>
 
 #include "amazeview.h"
 
+namespace
+{
+    constexpr float GridLeft   = 20.0F;
+    constexpr float GridTop    = 20.0F;
+    constexpr float GridSize   = 560.0F;
+
+    const std::array<Color, 10> palette =  {
+        WHITE, LIGHTGRAY, GRAY,
+        DARKGRAY, YELLOW, GOLD,
+        ORANGE, PINK, RED, MAROON
+    };
+}
+
 void AMazeView::transform_coords( UICapture& capture )
 {
-    if( capture.x > grid_bounds.x && capture.y > grid_bounds.y )
-        capture.grid_coords = std::make_pair( (capture.x - grid_bounds.x) / side_size, (capture.y - grid_bounds.y) / side_size );
+    if( capture.x > GridLeft && capture.y > GridTop )
+        capture.grid_coords = std::make_pair( (capture.x - GridLeft) / side_size, (capture.y - GridTop) / side_size );
 }
 
 const std::string& AMazeView::get_status_string( EditorResult::OperationStatus result)
@@ -76,8 +91,8 @@ void AMazeView::setup( const Level& level )
 
 void AMazeView::calc_side_size( size_t width, size_t height )
 {
-    size_t horizontal_side_length = grid_bounds.width / width;
-    size_t vertical_side_length = grid_bounds.height / height;
+    size_t horizontal_side_length = GridSize / width;
+    size_t vertical_side_length = GridSize / height;
 
     side_size = (vertical_side_length < horizontal_side_length ) ? vertical_side_length : horizontal_side_length;
 }
@@ -91,19 +106,20 @@ void AMazeView::render_grid( const Level& level )
     for (size_t y = 0; y < grid_height; ++y)
         for (size_t x = 0; x < grid_width; ++x)
         {
-            DrawRectangle( grid_bounds.x + x * side_size, grid_bounds.y + y * side_size, side_size, side_size, palette.at(level.tile(x, y)));
-            DrawRectangleLines( grid_bounds.x + x * side_size, grid_bounds.y + y * side_size, side_size, side_size, BLACK);
+            DrawRectangle( GridLeft + x * side_size, GridTop + y * side_size, side_size, side_size, palette.at(level.tile(x, y)));
+            DrawRectangleLines( GridLeft + x * side_size, GridTop + y * side_size, side_size, side_size, BLACK);
         }
 
-    DrawCircle( grid_bounds.x + (origin.first + .5) * side_size, grid_bounds.y + (origin.second + .5) * side_size, (side_size / 2) - 1, RED);
+    DrawCircle( GridLeft + (origin.first + .5) * side_size, GridTop + (origin.second + .5) * side_size, (side_size / 2) - 1, RED);
 }
 
-int AMazeView::render_toolbox( int selected_tile, Rectangle bounds )
+int AMazeView::render_toolbox( int selected_tile )
 {
     constexpr float tb_width = 150.0F;
     constexpr float tb_height = 38.0F;
     constexpr float tb_horizontal_spacing = 200.0F;
     constexpr float tb_vertical_spacing = 45.0F;
+    Rectangle bounds{600.0F, 350.0F, 0, 0};
 
     for( int i = 0; i < 10; ++i )
     {
@@ -149,7 +165,7 @@ EditorAction AMazeView::render(  const Level& level, int selected_tile )
 
     GuiLabel({600, 290, 330, 40}, status.c_str());
 
-    actions.select_tile = render_toolbox( selected_tile, {600.0F, 350.0F, 0, 0});
+    actions.select_tile = render_toolbox( selected_tile );
 
     return actions;
 }

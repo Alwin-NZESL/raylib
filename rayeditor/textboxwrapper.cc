@@ -1,5 +1,5 @@
 /*
- * textboxwrapper.h Copyright 2026 Alwin Leerling dna.leerling@gmail.com
+ * textboxwrapper.cc Copyright 2026 Alwin Leerling dna.leerling@gmail.com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,27 +17,24 @@
  * MA 02110-1301, USA.
  */
 
-#pragma once
+#include "textboxwrapper.h"
 
-#include <string>
-#include <array>
+#include <algorithm>
 
-class TextBoxWrapper
+#include <raygui.h>
+
+void TextBoxWrapper::render_control()
 {
-public:    
-    TextBoxWrapper( float left, float top, float width, std::string l )
-        : left(left), top(top), width(width), label(l) {}
+    GuiLabel({left, top, width, 20}, label.c_str() );
 
-    void render_control();
-    void set_text( std::string text );
+    if( GuiTextBox( {left, top + 30, width, 40}, content.data(), static_cast<int>(content.size()), edit_mode ) )
+        edit_mode = !edit_mode;
+}
 
-    std::string get_text() const { return std::string( content.data() ); }
+void TextBoxWrapper::set_text( std::string text )
+{
+    const auto len = std::min(text.size(), content.size() - 1);
+    std::copy_n(text.begin(), len, content.begin());
+    content[len] = '\0';        
+}
 
-private:
-    std::array<char, 256> content = {};
-    float left;
-    float top;
-    float width;
-    std::string label;
-    bool edit_mode = false;
-};
