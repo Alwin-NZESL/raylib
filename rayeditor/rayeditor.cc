@@ -7,6 +7,7 @@
 #include <fstream>
 #include <algorithm>
 #include <utility>
+#include <optional>
 
 #define RAYGUI_IMPLEMENTATION
 #include <raylib.h>
@@ -32,8 +33,8 @@ enum class OperationStatus {
 struct LevelEditResult
 {
     OperationStatus result;
-    std::string width;
-    std::string height;
+    size_t width;
+    size_t height;
 };
 
 struct EditorActions
@@ -48,23 +49,8 @@ struct EditorActions
     std::string new_height;
 };
 
-struct UIUpdate
-{
-    bool new_level = false;
-    bool load_level = false;
-    bool save_level = false;
 
-    LevelEditResult new_result;
-    LevelEditResult load_result;
-    LevelEditResult save_result;
-
-    size_t level_width;
-    size_t level_height;
-    std::string status;
-};
-
-
-const std::string& get_fileresult_string( OperationStatus result)
+const std::string& get_status_string( OperationStatus result)
 {
     static const std::unordered_map<OperationStatus, std::string> FileResultStrings = {
         { OperationStatus::NewSuccess, "New level" },
@@ -104,62 +90,62 @@ struct EditorState
 
 LevelEditResult EditorState::save_level( std::string filename )
 {
-    if( filename.empty() ) return { OperationStatus::EmptyFilename, "", "" };
+    if( filename.empty() ) return { OperationStatus::EmptyFilename };
 
     std::ofstream file(filename.c_str());
-    if( !file ) return { OperationStatus::OpenFailed, "", "" };
+    if( !file ) return { OperationStatus::OpenFailed, 0, 0 };
 
     file << level;
     file.flush();
 
-    if( !file ) return { OperationStatus::WriteFailed, "", "" };
+    if( !file ) return { OperationStatus::WriteFailed, 0, 0 };
 
-    return { OperationStatus::SaveSuccess, "", "" };
+    return { OperationStatus::SaveSuccess, 0, 0 };
 }
 
 LevelEditResult EditorState::load_level( std::string filename )
 {
     if( filename.empty() )
-        return { OperationStatus::EmptyFilename, "", "" };
+        return { OperationStatus::EmptyFilename, 0, 0 };
 
     std::ifstream file(filename.c_str());
     if (!file)
-        return { OperationStatus::OpenFailed, "", "" };
+        return { OperationStatus::OpenFailed, 0, 0 };
 
     Level loaded_level;
 
     if (!(file >> loaded_level))
-        return { OperationStatus::ReadFailed, "", "" };
+        return { OperationStatus::ReadFailed, 0, 0 };
 
     if (loaded_level.get_width() < 5 || loaded_level.get_height() < 5)
-        return { OperationStatus::FileMinExceeded, std::to_string(loaded_level.get_width()), std::to_string(loaded_level.get_height()) };
+        return { OperationStatus::FileMinExceeded, loaded_level.get_width(), loaded_level.get_height() };
 
     if (loaded_level.get_width() > 28 || loaded_level.get_height() > 28)
-        return { OperationStatus::FileMaxExceeded, std::to_string(loaded_level.get_width()), std::to_string(loaded_level.get_height()) };
+        return { OperationStatus::FileMaxExceeded, loaded_level.get_width(), loaded_level.get_height() };
 
     level = std::move(loaded_level);
 
-    return { OperationStatus::LoadSuccess, std::to_string(level.get_width()), std::to_string(level.get_height()) };
+    return { OperationStatus::LoadSuccess, level.get_width(), level.get_height() };
 }
 
 LevelEditResult EditorState::new_level( std::string width, std::string height )
 {
     try {
 
-        int new_width = std::stoi( width );
-        int new_height = std::stoi( height );
+        size_t new_width = std::stoi( width );
+        size_t new_height = std::stoi( height );
 
         if( new_width < 5 || new_height < 5 )
-            return { OperationStatus::MinExceeded, width, height };
+            return { OperationStatus::MinExceeded, new_width, new_height };
 
         if( new_width > 28 || new_height > 28 )
-            return { OperationStatus::MaxExceeded, width, height };
+            return { OperationStatus::MaxExceeded, new_width, new_height };
 
         level = Level(new_width, new_height);
-        return { OperationStatus::NewSuccess, "", "" };
+        return { OperationStatus::NewSuccess, new_width, new_height };
     }
     catch (...) {
-        return { OperationStatus::InvalidDimensions, width, height };
+        return { OperationStatus::InvalidDimensions, 0, 0 };
     }
 }
     
@@ -277,6 +263,9 @@ void EditorUI::setup( const Level& level )
     for( auto style : styles )
         GuiSetStyle( DEFAULT, style.first, style.second );
 
+    width.set_text( std::to_string( level.get_width() ) );
+    height.set_text( std::to_string( level.get_height() ) );
+
     calc_side_size( level.get_width(), level.get_height() );
 }
 
@@ -354,67 +343,6 @@ EditorActions EditorUI::render_controls( int selected_tile )
     return actions;
 }
 
-UIUpdate handle_actions( EditorState &editor, EditorActions actions )
-{
-    UIUpdate ret;
-
-    if( actions.do_new_level ) {
-        ret.new_level = true;
-
-        ret.new_result = editor.new_level( actions.new_width, actions.new_height );
-        if( ret.new_result.result == OperationStatus::NewSuccess ) {
-            ret.level_width = editor.level.get_width();
-            ret.level_height = editor.level.get_height();
-        }
-        ret.status = get_fileresult_string( ret.new_result.result );
-    }
-
-    if( actions.do_load_level ) {
-        ret.load_level = true;
-
-        ret.load_result = editor.load_level( actions.filename );
-        if( ret.load_result.result == OperationStatus::LoadSuccess ) {
-            ret.level_width = editor.level.get_width();
-            ret.level_height = editor.level.get_height();
-        }
-        ret.status = get_fileresult_string( ret.load_result.result );
-    }
-
-    if( actions.do_save_level ) {
-        ret.save_level = true;
-        ret.save_result = editor.save_level( actions.filename );
-        ret.status = get_fileresult_string( ret.save_result.result );
-    }
-
-    if( actions.select_tile != -1 )
-        editor.selected_tile = actions.select_tile;
-
-    return ret;
-}
-
-void update_ui( EditorUI& ui, UIUpdate& update )
-{
-    if( update.new_level ) {
-        if( update.new_result.result == OperationStatus::NewSuccess )
-            ui.calc_side_size( update.level_width, update.level_height );
-
-        ui.status = update.status;
-    }
-
-    if( update.load_level ) {
-        if( update.load_result.result == OperationStatus::LoadSuccess )
-        {
-            ui.width.set_text(update.load_result.width);
-            ui.height.set_text(update.load_result.height);
-            ui.calc_side_size( update.level_width, update.level_height );
-        }
-        ui.status = update.status;
-    }
-
-    if( update.save_level )
-        ui.status = update.status;
-}
-
 void handle_grid_input( EditorState& editor, Rectangle grid_bounds, size_t side_size )
 {
     if( GetMouseX() > grid_bounds.x && GetMouseY() > grid_bounds.y ) {
@@ -434,6 +362,41 @@ void handle_grid_input( EditorState& editor, Rectangle grid_bounds, size_t side_
 
     if( IsMouseButtonReleased( MOUSE_BUTTON_LEFT) )
         editor.drop_spawn();
+}
+
+std::optional<LevelEditResult> handle_actions( EditorState &editor, EditorActions actions )
+{
+    if( actions.do_new_level )
+        return editor.new_level( actions.new_width, actions.new_height );
+
+    if( actions.do_load_level )
+        return editor.load_level( actions.filename );
+
+    if( actions.do_save_level )
+        return editor.save_level( actions.filename );
+
+    if( actions.select_tile != -1 )
+        editor.selected_tile = actions.select_tile;
+
+    return std::nullopt;
+}
+
+void update_ui( EditorUI& ui, const std::optional<LevelEditResult>& update )
+{
+    if( !update )
+        return;
+
+    ui.status = get_status_string( update->result );
+
+    if( update->result == OperationStatus::NewSuccess  ||
+        update->result == OperationStatus::LoadSuccess
+    )
+        ui.calc_side_size( update->height, update->height );
+
+    if( update->result == OperationStatus::LoadSuccess ) {
+        ui.width.set_text( std::to_string( update->width ) );
+        ui.height.set_text( std::to_string( update->height ) );
+    }
 }
 
 int main(int argc, char **argv)
@@ -460,7 +423,7 @@ int main(int argc, char **argv)
 
         EndDrawing();
 
-        UIUpdate update = handle_actions( editor, actions );
+        auto update = handle_actions( editor, actions );
 
         update_ui( ui, update );
     }
