@@ -56,7 +56,7 @@ std::optional<EditorResult> AMazEditor::process( const EditorAction& actions )
     if( actions.action == EditorAction::Action::Save )
         return save_level( actions.filename );
 
-    if( actions.select_tile != -1 )
+    if( (actions.select_tile >= 0) && (actions.select_tile < 10) )
         selected_tile = actions.select_tile;
 
     return std::nullopt;

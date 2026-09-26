@@ -19,6 +19,7 @@ add_library(
 
     level.cc
     grid.cc
+    amazeditor.cc
 )
 
 target_include_directories( level_ds INTERFACE ./ )
@@ -28,6 +29,7 @@ add_executable(
 
     test_level.cc
     test_grid.cc
+    test_amazeditor.cc
 )
 
 target_link_libraries(test_level
@@ -46,7 +48,6 @@ add_executable(
 
     rayeditor.cc
     amazeview.cc
-    amazeditor.cc
     interaction.cc
 )
 
