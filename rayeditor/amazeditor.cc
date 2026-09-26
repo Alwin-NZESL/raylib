@@ -40,6 +40,9 @@ void AMazEditor::process( const UICapture& input )
 
     if( input.type == UICapture::Type::RightPressed )
         erase_tile( x, y );
+
+    if( input.type == UICapture::Type::RightDown )
+        erase_tile( x, y );
 }
 
 std::optional<EditorResult> AMazEditor::process( const EditorAction& actions )

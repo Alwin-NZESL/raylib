@@ -29,6 +29,7 @@ struct UICapture
         LeftDown,
         LeftReleased,
         RightPressed,
+        RightDown,
     };
 
     Type type;

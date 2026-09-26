@@ -29,6 +29,9 @@ std::optional<UICapture> get_input()
     if( IsMouseButtonDown(MOUSE_BUTTON_LEFT) )
         return UICapture {UICapture::Type::LeftDown, GetMouseX(), GetMouseY() };
 
+    if( IsMouseButtonDown(MOUSE_BUTTON_RIGHT) )
+        return UICapture {UICapture::Type::RightDown, GetMouseX(), GetMouseY() };
+
     if( IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) )
         return UICapture {UICapture::Type::RightPressed, GetMouseX(), GetMouseY() };
 
