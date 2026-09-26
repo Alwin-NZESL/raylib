@@ -1,5 +1,5 @@
 /*
- * amazeditor.h Copyright 2026 Alwin Leerling dna.leerling@gmail.com
+ * interaction.cc Copyright 2026 Alwin Leerling dna.leerling@gmail.com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,33 +19,8 @@
 
 #pragma once
 
-#include <string>
 #include <optional>
 
-#include "level.h"
 #include "messages.h"
 
-class AMazEditor
-{
-public:    
-    void process( const UICapture& input );
-    std::optional<EditorResult> process( const EditorAction& actions );
-
-    int get_selected_tile() const { return selected_tile; }
-    const Level& get_level() const { return level; }
-
-private:    
-    Level level;
-    int selected_tile = 1;
-    bool dragging = false;
-
-    EditorResult new_level( std::string width, std::string height );
-    EditorResult load_level( std::string filename );
-    EditorResult save_level( std::string filename );
-
-    void grab_spawn( int x, int y );
-    void drop_spawn();
-
-    void paint_tile( int x, int y );
-    void erase_tile( int x, int y );
-};
+std::optional<UICapture> get_input();

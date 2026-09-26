@@ -21,27 +21,11 @@
 
 #include "messages.h"
 
-#include <amazeditor.h>
-#include <amazeview.h>
+#include "amazeditor.h"
+#include "amazeview.h"
+#include "interaction.h"
 
 #include <raylib.h>
-
-std::optional<UICapture> get_input()
-{
-    if( IsMouseButtonPressed(MOUSE_BUTTON_LEFT) )
-        return UICapture {UICapture::Type::LeftPressed, GetMouseX(), GetMouseY() };
-
-    if( IsMouseButtonDown(MOUSE_BUTTON_LEFT) )
-        return UICapture {UICapture::Type::LeftDown, GetMouseX(), GetMouseY() };
-
-    if( IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) )
-        return UICapture {UICapture::Type::RightPressed, GetMouseX(), GetMouseY() };
-
-    if( IsMouseButtonReleased( MOUSE_BUTTON_LEFT) )
-        return UICapture {UICapture::Type::LeftReleased, GetMouseX(), GetMouseY() };
-
-    return std::nullopt;
-}
 
 int main(int argc, char **argv)
 {
@@ -57,7 +41,7 @@ int main(int argc, char **argv)
 
         if( auto input = get_input() ) {
             ui.transform_coords( *input );
-            editor.process_input( *input );
+            editor.process( *input );
         }
 
         BeginDrawing();
@@ -68,7 +52,7 @@ int main(int argc, char **argv)
 
         EndDrawing();
 
-        if( auto update = editor.process_action( action ) )
+        if( auto update = editor.process( action ) )
             ui.process( *update );
     }
 

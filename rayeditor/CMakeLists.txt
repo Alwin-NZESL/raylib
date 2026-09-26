@@ -47,6 +47,7 @@ add_executable(
     rayeditor.cc
     amazeview.cc
     amazeditor.cc
+    interaction.cc
 )
 
 target_link_libraries(
