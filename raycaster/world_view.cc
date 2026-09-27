@@ -166,16 +166,16 @@ void WorldView::paint_camera( WorldModel* world )
 	constexpr uint32_t blue {0xFF0000FF};
 	constexpr uint32_t yellow {0xFFFFFF00};
 
-    const Vec2 position = world->get_player_position();
+    const Vec2 position = world->get_player_position() * unit_size;
     const float angle = world->get_player_angle();
     const float zoom = world->get_player_zoom();
 
     const float cos = std::cos( angle );
     const float sin = std::sin( angle );
 
-    const Vec2 left_vec  { (cos + zoom * sin), (sin - zoom * cos) };
-    const Vec2 centre_vec{ (cos             ), (sin             ) };
-    const Vec2 right_vec { (cos - zoom * sin), (sin + zoom * cos) };
+    const Vec2 left_vec  = Vec2{ (cos + zoom * sin), (sin - zoom * cos) } * unit_size;
+    const Vec2 centre_vec = Vec2{ (cos             ), (sin             ) } * unit_size;
+    const Vec2 right_vec = Vec2 { (cos - zoom * sin), (sin + zoom * cos) } * unit_size;
 
     const Vec2 cam_left   = position + left_vec;
     const Vec2 cam_right  = position + right_vec;
@@ -194,10 +194,10 @@ void WorldView::paint_camera( WorldModel* world )
 
 void WorldView::draw_line( const Vec2& start, const Vec2& end, uint32_t color )
 {
-    int x0 = start.x * unit_size;
-    int y0 = start.y * unit_size;
-    int x1 = end.x * unit_size;
-    int y1 = end.y * unit_size;
+    int x0 = start.x;
+    int y0 = start.y;
+    int x1 = end.x;
+    int y1 = end.y;
 
     int dx = std::abs(x1 - x0);
     int dy = std::abs(y1 - y0);
@@ -220,8 +220,8 @@ void WorldView::draw_line( const Vec2& start, const Vec2& end, uint32_t color )
 
 void WorldView::draw_point( const Vec2& position, float size, uint32_t color )
 {
-    int centerX = position.x * unit_size;
-    int centerY = position.y * unit_size;
+    int centerX = position.x;
+    int centerY = position.y;
     int radius = size / 2;
 
     for( int y = -radius; y <= radius; ++y ) {
