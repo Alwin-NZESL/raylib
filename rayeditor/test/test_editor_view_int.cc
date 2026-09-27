@@ -59,10 +59,11 @@ TEST(EditorViewIntegration, LoadLevel)
 {
     AMazEditor editor;
     AMazeView view;
+    std::string filename = "../levels/old_level.lvl";
 
     view.setup(editor.get_level());
 
-    MockTextboxWrapper::filename_content = "old_level.lvl";
+    MockTextboxWrapper::filename_content = filename;
     MockAdapter::button_action = EditorAction::Action::Load;
 
     EditorAction actions = view.render(
@@ -71,7 +72,7 @@ TEST(EditorViewIntegration, LoadLevel)
     );
 
     EXPECT_EQ(actions.action, EditorAction::Action::Load);
-    EXPECT_EQ(actions.filename, "old_level.lvl");
+    EXPECT_EQ(actions.filename, filename);
 
     auto result = editor.process(actions);
 

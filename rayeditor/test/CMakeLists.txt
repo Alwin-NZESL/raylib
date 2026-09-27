@@ -26,8 +26,6 @@ add_executable(
     test_editor_view_int.cc
 )
 
-target_compile_definitions( test_editor PRIVATE TEST_LEVEL_DIR="${CMAKE_SOURCE_DIR}/levels" )
-
 target_link_libraries( test_editor PRIVATE GTest::gtest_main level_ds )
 
 gtest_discover_tests( test_editor )
