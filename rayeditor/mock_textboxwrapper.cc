@@ -1,5 +1,5 @@
 /*
- * raylib_adapter.h Copyright 2026 Alwin Leerling dna.leerling@gmail.com
+ * mock_textboxwrapper.cc Copyright 2026 Alwin Leerling dna.leerling@gmail.com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,19 +17,10 @@
  * MA 02110-1301, USA.
  */
 
-#pragma once
 
-#include <utility>
-#include <optional>
+#include "textboxwrapper.h"
 
-#include "grid.h"
-#include "messages.h"
+void TextBoxWrapper::render_control() {}
+void TextBoxWrapper::render_label() {}
 
-using Tile = int;
 
-std::optional<UICapture> get_input();
-
-void set_styles();
-void render_grid( const Grid<Tile>& grid, size_t side_size, std::pair<float, float> origin, float grid_left, float grid_top );
-int render_toolbox( int selected_tile );
-EditorAction::Action render_buttons();

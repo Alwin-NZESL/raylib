@@ -42,6 +42,8 @@ add_executable(
     test_grid.cc
     test_amazeditor.cc
     test_amazeview.cc
+    mock_adapter.cc
+    mock_textboxwrapper.cc
 )
 
 target_link_libraries( rayeditor PRIVATE level_ds raylib )

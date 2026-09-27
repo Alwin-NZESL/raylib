@@ -17,7 +17,7 @@
  * MA 02110-1301, USA.
  */
 
-#include "raylib_adapter.h"
+#include "adapter.h"
 
 #include <array>
 

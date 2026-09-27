@@ -1,5 +1,5 @@
 /*
- * test_amazeview.cc Copyright 2026 Alwin Leerling dna.leerling@gmail.com
+ * mock_adapter.cc Copyright 2026 Alwin Leerling dna.leerling@gmail.com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,11 +17,30 @@
  * MA 02110-1301, USA.
  */
 
-#include <gtest/gtest.h>
 
-#include "amazeview.h"
+#include "adapter.h"
 
-TEST(AMazeView, Creation)
+std::optional<UICapture> get_input()
 {
-    AMazeView view;
+    return std::nullopt;
+}
+
+void set_styles()
+{
+
+}
+
+void render_grid( const Grid<Tile>& grid, size_t side_size, std::pair<float, float> origin, float grid_left, float grid_top )
+{
+
+}
+
+int render_toolbox( int selected_tile )
+{
+    return -1;
+}
+
+EditorAction::Action render_buttons()
+{
+    return EditorAction::Action::None;
 }

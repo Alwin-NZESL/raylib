@@ -21,6 +21,7 @@
 
 #include <string>
 #include <array>
+#include <algorithm>
 
 class TextBoxWrapper
 {
@@ -31,8 +32,14 @@ public:
     void render_control();
     void render_label();
 
-    void set_label( std::string text );
-    void set_text( std::string text );
+    void set_label( std::string text ) { label = text; }
+
+    void set_text( std::string text )
+    {
+        const auto len = std::min(text.size(), content.size() - 1);
+        std::copy_n(text.begin(), len, content.begin());
+        content[len] = '\0';        
+    }
 
     std::string get_text() const { return std::string( content.data() ); }
 

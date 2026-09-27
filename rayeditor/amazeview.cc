@@ -22,7 +22,7 @@
 #include <unordered_map>
 #include <string>
 
-#include "raylib_adapter.h"
+#include "adapter.h"
 
 namespace {
     constexpr float GridLeft   = 20.0F;
