@@ -17,94 +17,17 @@
  * MA 02110-1301, USA.
  */
 
-#include <unordered_map>
-
-#define RAYGUI_IMPLEMENTATION
-#include <raylib.h>
-#include <raygui.h>
-
 #include "amazeview.h"
 
-namespace
-{
+#include <unordered_map>
+#include <string>
+
+#include "ray_render.h"
+
+namespace {
     constexpr float GridLeft   = 20.0F;
     constexpr float GridTop    = 20.0F;
     constexpr float GridSize   = 560.0F;
-
-    const std::array<Color, 10> palette =  {
-        WHITE, LIGHTGRAY, GRAY,
-        DARKGRAY, YELLOW, GOLD,
-        ORANGE, PINK, RED, MAROON
-    };
-
-    void set_styles()
-    {
-        const std::array<std::pair<int,int>, 10> styles { {
-            { TEXT_SIZE, 20 },
-            { TEXT_COLOR_NORMAL,   0xF0F0F0FF },  // Normal controls
-            { BASE_COLOR_NORMAL,   0x356B50FF },
-            { BORDER_COLOR_NORMAL, 0x183D2AFF },
-            { TEXT_COLOR_FOCUSED,   0xFFFFFFFF }, // Focused controls
-            { BASE_COLOR_FOCUSED,   0x478C68FF },
-            { BORDER_COLOR_FOCUSED, 0xA0D8B5FF },
-            { TEXT_COLOR_PRESSED,   0xFFFFFFFF }, // Pressed controls
-            { BASE_COLOR_PRESSED,   0x244B38FF },
-            { BORDER_COLOR_PRESSED, 0xA0D8B5FF },    
-        }};
-
-        for( const auto& style : styles )
-            GuiSetStyle( DEFAULT, style.first, style.second );
-    }
-
-    void render_grid( const Grid<Tile>& grid, size_t side_size, std::pair<float, float> origin )
-    {
-        for (size_t y = 0; y < grid.get_height(); ++y)
-            for (size_t x = 0; x < grid.get_width(); ++x)
-            {
-                DrawRectangle( GridLeft + x * side_size, GridTop + y * side_size, side_size, side_size, palette.at( grid.cell(x, y) ));
-                DrawRectangleLines( GridLeft + x * side_size, GridTop + y * side_size, side_size, side_size, BLACK);
-            }
-
-        DrawCircle( GridLeft + (origin.first + .5) * side_size, GridTop + (origin.second + .5) * side_size, (side_size / 2) - 1, RED);
-    }
-
-    int render_toolbox( int selected_tile )
-    {
-        constexpr float tb_width = 150.0F;
-        constexpr float tb_height = 38.0F;
-        constexpr float tb_horizontal_spacing = 200.0F;
-        constexpr float tb_vertical_spacing = 45.0F;
-        Rectangle bounds{600.0F, 350.0F, 0, 0};
-
-        for( int i = 0; i < 10; ++i )
-        {
-            bool active = (selected_tile == i);
-
-            Rectangle toggle_bounds = { bounds.x + (i / 5) * tb_horizontal_spacing, bounds.y + (i % 5) * tb_vertical_spacing, tb_width, tb_height};
-
-            GuiToggle(toggle_bounds, (i == 0) ? TextFormat("No wall") : TextFormat("Wall %d", i), &active);
-            DrawRectangle((int)toggle_bounds.x + 8, (int)toggle_bounds.y + 8, 20, 20, palette.at(i));
-            
-            if (active)
-                selected_tile = i;
-        }
-
-        return selected_tile;
-    }
-
-    EditorAction::Action render_buttons()
-    {
-        if( GuiButton({800, 60, 130, 40}, "New") )
-            return EditorAction::Action::New;
-
-        if( GuiButton({600, 230, 130, 40}, "Load") )
-            return EditorAction::Action::Load;
-
-        if( GuiButton({800, 230, 130, 40}, "Save") )
-            return EditorAction::Action::Save;
-
-        return EditorAction::Action::None;
-    }
 }
 
 void AMazeView::setup( const Level& level )
@@ -121,7 +44,7 @@ EditorAction AMazeView::render(  const Level& level, int selected_tile )
 {
     EditorAction actions;
 
-    render_grid( level.get_grid(), side_size, level.get_player_origin() );
+    render_grid( level.get_grid(), side_size, level.get_player_origin(), GridLeft, GridTop );
 
     width.render_control();
     height.render_control();

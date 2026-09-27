@@ -50,6 +50,7 @@ add_executable(
     amazeview.cc
     interaction.cc
     textboxwrapper.cc
+    ray_render.cc
 )
 
 target_link_libraries(

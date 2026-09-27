@@ -1,5 +1,5 @@
 /*
- * amazeui.h Copyright 2026 Alwin Leerling dna.leerling@gmail.com
+ * ray_render.h Copyright 2026 Alwin Leerling dna.leerling@gmail.com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,27 +19,14 @@
 
 #pragma once
 
-#include "level.h"
+#include <utility>
+
+#include "grid.h"
 #include "messages.h"
-#include "textboxwrapper.h"
 
-class AMazeView
-{
-public:    
-    void setup( const Level& state );
-    EditorAction render(  const Level& level, int selected_tile );
-    void process( const EditorResult& update );
+using Tile = int;
 
-    void transform_coords( UICapture& capture );
-    size_t get_side_size() const { return side_size; }
-
-private:
-    size_t side_size = 0;
-
-    TextBoxWrapper filename{ 600, 130, 330, 70, "File name:"};
-    TextBoxWrapper width{600, 30, 80, 70, "Width"};
-    TextBoxWrapper height{700, 30, 80, 70, "Height"};
-    TextBoxWrapper message{600, 290, 330, 40, ""};
-
-    void calc_side_size( size_t width, size_t height );
-};
+void set_styles();
+void render_grid( const Grid<Tile>& grid, size_t side_size, std::pair<float, float> origin, float grid_left, float grid_top );
+int render_toolbox( int selected_tile );
+EditorAction::Action render_buttons();
