@@ -33,16 +33,6 @@ void WorldModel::load_level(const Level& level)
     player_angle = level.get_player_angle();
 }
 
-void WorldModel::load_level( std::string filename )
-{
-    Level level;
-
-    std::ifstream file( filename );
-
-    if( file >> level )
-        load_level( level );
-}
-
 std::pair<int,int> WorldModel::get_background_ids( Vec2 hitpoint ) const
 {
     Vec2i cell = hitpoint.floor();

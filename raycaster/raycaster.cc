@@ -17,6 +17,8 @@
  * MA 02110-1301, USA.
  */
 
+ #include <fstream>
+
 #include "raylib.h"
 
 #include "world_model.h"
@@ -33,7 +35,15 @@ int main( int argc, char* argv[] )
     WorldModel world;
     WorldView view;
 
-    world.load_level( ( argc > 1 ) ? argv[1] : default_level );
+    {
+        std::string filename = ( argc > 1 ) ? argv[1] : default_level;
+        Level level;
+
+        std::ifstream file( filename );
+
+        if( file >> level )
+            world.load_level( level );
+    }
 
     InitWindow( screen_width, screen_height, "A-Maze-Thing" );
     SetTargetFPS( 60 );

@@ -39,7 +39,6 @@ class WorldModel
 {
 public:
 	void load_level( const Level& level );
-	void load_level( std::string filename );
 
 	bool update( uint8_t key_state, float elapsed_time );
 
