@@ -1,5 +1,5 @@
 /*
- * texture_container.h Copyright 2025 Alwin Leerling dna.leerling@gmail.com
+ * key_messages.h Copyright 2026 Alwin Leerling dna.leerling@gmail.com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,27 +20,17 @@
 #pragma once
 
 #include <cstdint>
-#include <array>
 
-#include <raylib.h>
-
-#include "vec2.h"
-
-class TextureContainer
+enum KeyState : uint8_t
 {
-public:
-	TextureContainer();
-
-	uint32_t* get_buffer( int tex_id ) const;
-	uint32_t get_colour( uint32_t* tex_buffer, Vec2 tex_coord ) const;
-
-private:
-	const static int TEXTURE_WIDTH = 64;
-	const static int TEXTURE_HEIGHT = 64;
-	const static int TEXTURE_COUNT = 8;
-
-	std::array<Image, TEXTURE_COUNT * 2> textures;
-
-	void load_textures();
-	void make_generated_textures();
+    MoveForward = 1 << 0,
+    MoveBackward = 1 << 1,
+    RotateLeft = 1 << 2,
+    RotateRight = 1 << 3,
+    ZoomIn = 1 << 4,
+    ZoomOut = 1 << 5,
+    ToggleMinimap = 1 << 6,
+    ToggleTextures = 1 << 7
 };
+
+uint8_t get_input( );

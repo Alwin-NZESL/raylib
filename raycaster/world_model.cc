@@ -21,7 +21,7 @@
 #include <fstream>
 #include <iostream>
 
-#include "raylib.h"
+#include "key_messages.h"
 
 #include "world_model.h"
 
@@ -33,34 +33,6 @@ void WorldModel::load_level( std::string filename )
 
 	player_position = level_data.get_player_origin() + Vec2{0.5,0.5};   // adjust to the centre of the tile
 	player_angle = level_data.get_player_angle();
-}
-
-
-void WorldModel::handle_input()
-{
-    static std::unordered_map<int, WorldModel::KeyState> key_map = {
-        { KEY_UP, WorldModel::KeyState::MoveForward },
-        { KEY_DOWN, WorldModel::KeyState::MoveBackward },
-        { KEY_LEFT, WorldModel::KeyState::RotateLeft },
-        { KEY_RIGHT, WorldModel::KeyState::RotateRight },
-        { KEY_X, WorldModel::KeyState::ZoomIn },
-        { KEY_Z, WorldModel::KeyState::ZoomOut },
-        { KEY_SPACE, WorldModel::KeyState::ToggleMinimap },
-        { KEY_T, WorldModel::KeyState::ToggleTextures }
-    };
-
-    for( const auto &[key, key_state] : key_map ) {
-        if( IsKeyPressed(key) ) key_state_action( key_state, true );
-        if( IsKeyReleased(key) ) key_state_action( key_state, false );
-    }
-}
-
-void WorldModel::key_state_action( WorldModel::KeyState key_state, bool is_pressed )
-{
-	if( is_pressed )
-		this->key_state |= key_state;
-	else
-		this->key_state &= ~key_state;
 }
 
 std::pair<int,int> WorldModel::get_background_ids( Vec2 hitpoint ) const
@@ -91,7 +63,7 @@ int WorldModel::get_wall_texture_id( Vec2 hitpoint ) const
     return wall_text_id;
 }
 
-bool WorldModel::update( float elapsed_time )
+bool WorldModel::update( uint8_t key_state, float elapsed_time )
 {
     constexpr float position_speed = 0.005;
     constexpr float rotation_speed = 0.314159265358979323846F / 180.0F;

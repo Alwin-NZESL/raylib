@@ -22,11 +22,13 @@
 #include "world_model.h"
 #include "world_view.h"
 
+#include "key_messages.h"
+
 int main( int argc, char* argv[] )
 {
     constexpr int screen_width = 1920;
     constexpr int screen_height = 1080;
-    const std::string default_level("levels/std_level.lvl");
+    const std::string default_level("../rayeditor/levels/old_level.lvl");
     
     WorldModel world;
     WorldView view;
@@ -40,9 +42,7 @@ int main( int argc, char* argv[] )
 
     while( !WindowShouldClose() ) {
 
-        world.handle_input();
-
-        world.update( GetFrameTime() * 1000.0F );
+        world.update( get_input(), GetFrameTime() * 1000.0F );
 
         BeginDrawing();
 

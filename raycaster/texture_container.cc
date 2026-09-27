@@ -19,8 +19,6 @@
 
 #include "texture_container.h"
 
-#include "raylib.h"
-
 TextureContainer::TextureContainer()
 {
     make_generated_textures();
