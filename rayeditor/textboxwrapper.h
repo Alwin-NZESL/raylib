@@ -34,14 +34,9 @@ public:
 
     void set_label( std::string text ) { label = text; }
 
-    void set_text( std::string text )
-    {
-        const auto len = std::min(text.size(), content.size() - 1);
-        std::copy_n(text.begin(), len, content.begin());
-        content[len] = '\0';        
-    }
+    void set_text( std::string text );
 
-    std::string get_text() const { return std::string( content.data() ); }
+    std::string get_text() const;
 
 private:
     std::array<char, 256> content = {};

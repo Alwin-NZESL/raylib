@@ -20,7 +20,46 @@
 
 #include "textboxwrapper.h"
 
+namespace MockTextboxWrapper
+{
+    std::string width_content = "";
+    std::string height_content = "";
+    std::string filename_content = "";
+
+    void reset() {
+        width_content = "";
+        height_content = "";
+        filename_content = "";
+    }
+}
+
 void TextBoxWrapper::render_control() {}
 void TextBoxWrapper::render_label() {}
 
+
+void TextBoxWrapper::set_text( std::string text )
+{
+    if( label == "File name:" )
+        MockTextboxWrapper::filename_content = text;
+
+    if( label == "Width" )
+        MockTextboxWrapper::width_content = text;
+        
+    if( label == "Height" )
+        MockTextboxWrapper::height_content = text;
+}
+
+std::string TextBoxWrapper::get_text() const
+{
+    if( label == "File name:" )
+        return MockTextboxWrapper::filename_content;
+
+    if( label == "Width" )
+        return MockTextboxWrapper::width_content;
+        
+    if( label == "Height" )
+        return MockTextboxWrapper::height_content;
+
+    return "Invalid TextboxWrapper";
+}
 

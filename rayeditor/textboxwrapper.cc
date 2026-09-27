@@ -34,6 +34,17 @@ void TextBoxWrapper::render_label()
     GuiLabel({left, top, width, height}, label.c_str() );
 }
 
+void TextBoxWrapper::set_text( std::string text )
+{
+    const auto len = std::min(text.size(), content.size() - 1);
+    std::copy_n(text.begin(), len, content.begin());
+    content[len] = '\0';        
+}
+
+std::string TextBoxWrapper::get_text() const
+{
+    return std::string( content.data() );
+}
 
 
 

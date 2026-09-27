@@ -20,6 +20,17 @@
 
 #include "adapter.h"
 
+namespace MockAdapter
+{
+    EditorAction::Action button_action = EditorAction::Action::None;
+    int selected_tile = 1;
+
+    void reset() {
+        button_action = EditorAction::Action::None;
+        selected_tile = 1;
+    }
+}
+
 std::optional<UICapture> get_input()
 {
     return std::nullopt;
@@ -27,20 +38,18 @@ std::optional<UICapture> get_input()
 
 void set_styles()
 {
-
 }
 
 void render_grid( const Grid<Tile>& grid, size_t side_size, std::pair<float, float> origin, float grid_left, float grid_top )
 {
-
 }
 
 int render_toolbox( int selected_tile )
 {
-    return -1;
+    return MockAdapter::selected_tile;
 }
 
 EditorAction::Action render_buttons()
 {
-    return EditorAction::Action::None;
+    return MockAdapter::button_action;
 }
