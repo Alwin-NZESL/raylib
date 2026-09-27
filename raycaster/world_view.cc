@@ -25,7 +25,36 @@
 
 #include "vec2.h"
 
+#include "texture_container.h"
+
 namespace {
+
+    TextureContainer textures;
+    Texture2D texture;
+
+    void alloc_texture_buffer( uint32_t* buffer, Vec2i dimension )
+    {
+        Image image = {
+            .data = buffer,
+            .width = (int)dimension.x,
+            .height = (int)dimension.y,
+            .mipmaps = 1,
+            .format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8
+        };
+        texture = LoadTextureFromImage( image );    
+
+    }
+
+    void draw_texture_buffer( uint32_t* buffer )
+    {
+        UpdateTexture( texture, buffer );
+        DrawTexture( texture, 0, 0, WHITE );
+    }
+
+    void delete_texture_buffer()
+    {
+        UnloadTexture( texture );
+    }
 
     uint32_t shade_pixel( uint32_t colour, float shading_factor )
     {
@@ -89,7 +118,7 @@ namespace {
         }
     }
 
-    void draw_rect( uint32_t* buffer, Vec2i dimension, const Vec2i topleft, const Vec2i size, uint32_t color )
+    void draw_rect( uint32_t* buffer, Vec2i dimension, const Vec2 topleft, const Vec2 size, uint32_t color )
     {
         for( int y = topleft.y; y < topleft.y + size.y; ++y ) {
             for( int x = topleft.x; x < topleft.x + size.x; ++x ) {
@@ -98,23 +127,43 @@ namespace {
             }
         }
     }
+
+    void draw_pixel( uint32_t* buffer, Vec2i dimension, const Vec2i position, uint32_t color )
+    {
+        if( position.x >= 0 && position.x < dimension.x && position.y >= 0 && position.y < dimension.y )
+            buffer[(position.y * dimension.x + position.x)] = color;
+    }
+
+    void draw_debugging_info( Vec2i dimension, double minimap_us, double rays_us )
+    {
+        std::string minimap_text = "Minimap: " + std::to_string( minimap_us / 1000.0F ) + " ms";
+        std::string rays_text = "Rays: " + std::to_string( rays_us / 1000.0F ) + " ms";
+        std::string delta_time_text = "Delta time: " + std::to_string( GetFrameTime() * 1000.0F ) + " ms";
+
+        DrawText( rays_text.c_str(), 0, dimension.y - 120, 40, BLUE );
+        DrawText( minimap_text.c_str(), 0, dimension.y - 80, 40, BLUE );
+        DrawText( delta_time_text.c_str(), 0, dimension.y - 40, 40, RED );
+    }
+
 }
 
 void WorldView::setup( size_t width, size_t height )
 {
     bounds = Vec2i( width, height );
 
+    unit_size = height / 100;
+
     framebuffer.resize( width * height );
     std::fill( framebuffer.begin(), framebuffer.end(), 0 );
-    Image image = {
-        .data = framebuffer.data(),
-        .width = (int)width,
-        .height = (int)height,
-        .mipmaps = 1,
-        .format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8
-    };
-    texture = LoadTextureFromImage( image );    
+
+    alloc_texture_buffer( framebuffer.data(), bounds );
 }
+
+void WorldView::teardown()
+{
+    delete_texture_buffer();
+}
+
 
 void WorldView::render( WorldModel &world )
 {
@@ -122,36 +171,29 @@ void WorldView::render( WorldModel &world )
 
     auto start = std::chrono::high_resolution_clock::now();
 
-    paint_rays( &world );
+    paint_rays( world );
 
     auto rays_end = std::chrono::high_resolution_clock::now();
 
     if( world.do_show_minimap() ) {
-        paint_minimap( &world );
-        paint_camera( &world );
+        paint_minimap( world );
+        paint_camera( world );
     }
 
     auto minimap_end = std::chrono::high_resolution_clock::now();
 
-    UpdateTexture( texture, framebuffer.data() );
-
-    DrawTexture( texture, 0, 0, WHITE );
+    draw_texture_buffer( framebuffer.data() );
 
     if( debugging ) {
+
         double rays_us = std::chrono::duration_cast<std::chrono::microseconds>( rays_end - start ).count();
         double minimap_us = std::chrono::duration_cast<std::chrono::microseconds>( minimap_end - rays_end ).count();
 
-        std::string minimap_text = "Minimap: " + std::to_string( minimap_us / 1000.0F ) + " ms";
-        std::string rays_text = "Rays: " + std::to_string( rays_us / 1000.0F ) + " ms";
-        std::string delta_time_text = "Delta time: " + std::to_string( GetFrameTime() * 1000.0F ) + " ms";
-
-        DrawText( rays_text.c_str(), 0, bounds.y - 120, 40, BLUE );
-        DrawText( minimap_text.c_str(), 0, bounds.y - 80, 40, BLUE );
-        DrawText( delta_time_text.c_str(), 0, bounds.y - 40, 40, RED );
+        draw_debugging_info( bounds, minimap_us, rays_us );
     }
 }
 
-void WorldView::paint_rays( WorldModel* world )
+void WorldView::paint_rays( WorldModel& world )
 {
     for( int x = 0; x < bounds.x; ++x ) {
 
@@ -160,36 +202,23 @@ void WorldView::paint_rays( WorldModel* world )
         float wall_height = 0;
         Vec2 tex_coord{ 0.0, 0.0 };
 
-        const auto hit = world->cast_ray( x, bounds.x);
+        const auto hit = world.cast_ray( x, bounds.x);
         if( hit ) {
             tex_buffer = textures.get_buffer( hit->wall_type );
             shading_factor = 1.0F - hit->wall_side * 0.35F;
-            wall_height = bounds.y / ( hit->distance_to_wall * world->get_player_zoom() );
+            wall_height = bounds.y / ( hit->distance_to_wall * world.get_player_zoom() );
             tex_coord.x = hit->wall_offset;
+            tex_coord.y = 1.0 / wall_height;
         }
 
         float wall_top    = (bounds.y - wall_height) / 2;
         float wall_bottom = (bounds.y + wall_height) / 2;
 
-        int y;
-
-        for( y = 0; y < wall_top; ++y )
-            framebuffer.data()[y * bounds.x + x] = 0xFF181818;
-
-        for( ; (y < wall_bottom) && (y < bounds.y); ++y ) {
-
-            tex_coord.y = (y - wall_top)/wall_height;
-            uint32_t ray_colour = textures.get_colour( tex_buffer, tex_coord );
-
-            framebuffer.data()[y * bounds.x + x] = shade_pixel( ray_colour, shading_factor );
-        }
-
-        for( ; y < bounds.y; ++y )
-            framebuffer.data()[y * bounds.x + x] = 0xFF626262;
+        draw_column( x, wall_top, wall_bottom, tex_coord, tex_buffer, shading_factor);
     }
 }
 
-void WorldView::paint_minimap( WorldModel* world )
+void WorldView::paint_minimap( WorldModel& world )
 {
     constexpr std::array<uint32_t,9> colours
     {
@@ -204,28 +233,28 @@ void WorldView::paint_minimap( WorldModel* world )
         0xFF808080  // Gray
     };
 
-    size_t xdim = world->get_world_dimension().x;
-    size_t ydim = world->get_world_dimension().y;
+    size_t xdim = world.get_world_dimension().x;
+    size_t ydim = world.get_world_dimension().y;
 
     for( size_t y = 0; y < ydim; ++y ) {
         for( size_t x = 0; x < xdim; ++x ) {
-            auto cell_type = world->get_celltype({x, y});
+            auto cell_type = world.get_celltype({x, y});
             if( cell_type < 9 )
                 draw_rect( framebuffer.data(), bounds, { x * unit_size, y * unit_size }, {unit_size, unit_size}, colours[cell_type] );
         }
     }
 }
 
-void WorldView::paint_camera( WorldModel* world )
+void WorldView::paint_camera( WorldModel& world )
 {
 	constexpr uint32_t red {0xFFFF0000};
 	constexpr uint32_t green {0xFF00FF00};
 	constexpr uint32_t blue {0xFF0000FF};
 	constexpr uint32_t yellow {0xFFFFFF00};
 
-    const Vec2 position = world->get_player_position() * unit_size;
-    const float angle = world->get_player_angle();
-    const float zoom = world->get_player_zoom();
+    const Vec2 position = world.get_player_position() * unit_size;
+    const float angle = world.get_player_angle();
+    const float zoom = world.get_player_zoom();
 
     const float cos = std::cos( angle );
     const float sin = std::sin( angle );
@@ -249,3 +278,25 @@ void WorldView::paint_camera( WorldModel* world )
 	draw_point( framebuffer.data(), bounds, position, 6.0, yellow );
 }
 
+void WorldView::draw_column( size_t x, float wall_top, float wall_bottom, Vec2 &tex_coord, uint32_t *tex_buffer, float shading_factor )
+{
+    constexpr uint32_t CEILING_COLOR = 0xFF181818;
+    constexpr uint32_t FLOOR_COLOR = 0xFF626262;
+    size_t y;
+    float dy = tex_coord.y;     // paint_rays stores the delta in the texture coords
+
+    tex_coord.y = (wall_top < 0.0F) ? -wall_top * dy : 0.0F;
+
+    for (y = 0; y < wall_top; ++y)
+        draw_pixel( framebuffer.data(), bounds, {x,y}, CEILING_COLOR );
+
+    for (; (y < wall_bottom) && (y < bounds.y); ++y, tex_coord.y += dy) {
+
+        uint32_t ray_colour = shade_pixel( textures.get_colour(tex_buffer, tex_coord), shading_factor );
+
+        draw_pixel( framebuffer.data(), bounds, {x,y}, ray_colour );
+    }
+
+    for (; y < bounds.y; ++y)
+        draw_pixel( framebuffer.data(), bounds, {x,y}, FLOOR_COLOR );
+}

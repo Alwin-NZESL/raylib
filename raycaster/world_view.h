@@ -23,23 +23,22 @@
 #include <vector>
 
 #include "world_model.h"
-#include "texture_container.h"
 
 class WorldView
 {
 public:
     void setup( size_t width, size_t height );
     void render( WorldModel &world );
-    void teardown() { UnloadTexture( texture ); }
+    void teardown();
 
 private:
-	size_t unit_size = 15;
-    TextureContainer textures;
-    Texture2D texture;
     std::vector<uint32_t> framebuffer;
     Vec2i bounds;
+	float unit_size;
 
-    void paint_rays( WorldModel* world );
-    void paint_minimap( WorldModel* world );
-    void paint_camera( WorldModel* world );
+    void paint_rays( WorldModel& world );
+    void paint_minimap( WorldModel& world );
+    void paint_camera( WorldModel& world );
+
+    void draw_column( size_t x, float wall_top, float wall_bottom, Vec2 &tex_coord, uint32_t *tex_buffer, float shading_factor);
 };
