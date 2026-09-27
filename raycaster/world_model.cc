@@ -25,14 +25,22 @@
 
 #include "world_model.h"
 
+void WorldModel::load_level(const Level& level)
+{
+    level_data = level;
+
+    player_position = level.get_player_origin() + Vec2{0.5,0.5};   // adjust to the centre of the tile;
+    player_angle = level.get_player_angle();
+}
+
 void WorldModel::load_level( std::string filename )
 {
+    Level level;
+
     std::ifstream file( filename );
 
-    file >> level_data;
-
-	player_position = level_data.get_player_origin() + Vec2{0.5,0.5};   // adjust to the centre of the tile
-	player_angle = level_data.get_player_angle();
+    if( file >> level )
+        load_level( level );
 }
 
 std::pair<int,int> WorldModel::get_background_ids( Vec2 hitpoint ) const
