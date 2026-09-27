@@ -28,7 +28,7 @@
 class WorldView
 {
 public:
-    void setup( int width, int height );
+    void setup( size_t width, size_t height );
     void render( WorldModel &world );
     void teardown() { UnloadTexture( texture ); }
 
@@ -37,13 +37,9 @@ private:
     TextureContainer textures;
     Texture2D texture;
     std::vector<uint32_t> framebuffer;
-    int width;
-    int height;
+    Vec2i bounds;
 
     void paint_rays( WorldModel* world );
     void paint_minimap( WorldModel* world );
     void paint_camera( WorldModel* world );
-
-    void draw_line( const Vec2& start, const Vec2& end, uint32_t color );
-    void draw_point( const Vec2& position, float size, uint32_t color );
 };
