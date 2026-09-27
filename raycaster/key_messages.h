@@ -21,7 +21,7 @@
 
 #include <cstdint>
 
-enum KeyState : uint8_t
+enum KeyState : uint16_t
 {
     MoveForward = 1 << 0,
     MoveBackward = 1 << 1,
@@ -30,7 +30,8 @@ enum KeyState : uint8_t
     ZoomIn = 1 << 4,
     ZoomOut = 1 << 5,
     ToggleMinimap = 1 << 6,
-    ToggleTextures = 1 << 7
+    ToggleTextures = 1 << 7,
+    ToggleDebugging = 1 << 8,
 };
 
-uint8_t get_input( );
+uint16_t get_input( );

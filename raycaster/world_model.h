@@ -40,7 +40,7 @@ class WorldModel
 public:
 	void load_level( const Level& level );
 
-	bool update( uint8_t key_state, float elapsed_time );
+	bool update( uint16_t key_state, float elapsed_time );
 
 	float angle_start() const { return player_angle - std::atan( player_zoom ); }
 	float angle_step( float resolution ) const { return 2.0F * std::atan( player_zoom ) / resolution; }
@@ -48,6 +48,7 @@ public:
 	std::optional<RayHit> cast_ray( int step, int width ) const;
 
 	bool do_show_minimap() const { return show_minimap; }
+	bool do_show_debugging() const { return show_debugging; }
 
 	std::pair<int,int> get_background_ids( Vec2 hitpoint ) const;
 	int get_celltype( Vec2i cell_to_test ) const { return level_data.tile( cell_to_test.x, cell_to_test.y ); }
@@ -64,6 +65,7 @@ private:
 	float player_zoom = 0.4;
 	bool show_minimap = true;
 	bool show_generated_textures = false;
+	bool show_debugging = false;
 
 	bool is_wall( Vec2 position ) const;
 	int get_wall_texture_id( Vec2 hitpoint ) const;

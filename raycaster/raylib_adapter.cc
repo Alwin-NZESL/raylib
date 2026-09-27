@@ -5,9 +5,9 @@
 
 #include <raylib.h>
 
-uint8_t get_input( )
+uint16_t get_input( )
 {
-    uint8_t keystate = 0;
+    uint16_t keystate = 0;
 
     static std::unordered_map<int, KeyState> key_map = {
         { KEY_UP, KeyState::MoveForward },
@@ -20,7 +20,8 @@ uint8_t get_input( )
 
     static std::unordered_map<int, KeyState> key_map2 = {
         { KEY_SPACE, KeyState::ToggleMinimap },
-        { KEY_T, KeyState::ToggleTextures }
+        { KEY_T, KeyState::ToggleTextures },
+        { KEY_D, KeyState::ToggleDebugging }
     };
 
     for( const auto &[key, key_state] : key_map ) {

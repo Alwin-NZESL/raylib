@@ -61,7 +61,7 @@ int WorldModel::get_wall_texture_id( Vec2 hitpoint ) const
     return wall_text_id;
 }
 
-bool WorldModel::update( uint8_t key_state, float elapsed_time )
+bool WorldModel::update( uint16_t key_state, float elapsed_time )
 {
     constexpr float position_speed = 0.005;
     constexpr float rotation_speed = 0.314159265358979323846F / 180.0F;
@@ -95,6 +95,11 @@ bool WorldModel::update( uint8_t key_state, float elapsed_time )
 	if( key_state & KeyState::ToggleTextures ) {
 		key_state &= ~KeyState::ToggleTextures;
 		show_generated_textures = !show_generated_textures;
+	}
+
+	if( key_state & KeyState::ToggleDebugging ) {
+		key_state &= ~KeyState::ToggleDebugging;
+		show_debugging = !show_debugging;
 	}
 
     return true;
