@@ -23,7 +23,7 @@
 
 #include "amazeditor.h"
 #include "amazeview.h"
-#include "interaction.h"
+#include "raylib_adapter.h"
 
 #include <raylib.h>
 

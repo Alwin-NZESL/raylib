@@ -1,5 +1,5 @@
 /*
- * ray_render.cc Copyright 2026 Alwin Leerling dna.leerling@gmail.com
+ * raylib_adapter.cc Copyright 2026 Alwin Leerling dna.leerling@gmail.com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * MA 02110-1301, USA.
  */
 
-#include "ray_render.h"
+#include "raylib_adapter.h"
 
 #include <array>
 
@@ -30,6 +30,26 @@ const std::array<Color, 10> palette =  {
     DARKGRAY, YELLOW, GOLD,
     ORANGE, PINK, RED, MAROON
 };
+
+std::optional<UICapture> get_input()
+{
+    if( IsMouseButtonPressed(MOUSE_BUTTON_LEFT) )
+        return UICapture {UICapture::Type::LeftPressed, GetMouseX(), GetMouseY() };
+
+    if( IsMouseButtonDown(MOUSE_BUTTON_LEFT) )
+        return UICapture {UICapture::Type::LeftDown, GetMouseX(), GetMouseY() };
+
+    if( IsMouseButtonDown(MOUSE_BUTTON_RIGHT) )
+        return UICapture {UICapture::Type::RightDown, GetMouseX(), GetMouseY() };
+
+    if( IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) )
+        return UICapture {UICapture::Type::RightPressed, GetMouseX(), GetMouseY() };
+
+    if( IsMouseButtonReleased( MOUSE_BUTTON_LEFT) )
+        return UICapture {UICapture::Type::LeftReleased, GetMouseX(), GetMouseY() };
+
+    return std::nullopt;
+}
 
 void set_styles()
 {
