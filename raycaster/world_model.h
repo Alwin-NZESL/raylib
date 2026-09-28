@@ -19,7 +19,6 @@
 
 #pragma once
 
-#include <string>
 #include <array>
 #include <cstdint>
 #include <optional>
@@ -39,24 +38,18 @@ class WorldModel
 {
 public:
 	void load_level( const Level& level );
-
 	bool update( uint16_t key_state, float elapsed_time );
 
+	std::optional<RayHit> cast_ray( int step, int width ) const;
 	float angle_start() const { return player_angle - std::atan( player_zoom ); }
 	float angle_step( float resolution ) const { return 2.0F * std::atan( player_zoom ) / resolution; }
-
-	std::optional<RayHit> cast_ray( int step, int width ) const;
-
-	bool do_show_minimap() const { return show_minimap; }
-	bool do_show_debugging() const { return show_debugging; }
-
-	std::pair<int,int> get_background_ids( Vec2 hitpoint ) const;
 	int get_celltype( Vec2i cell_to_test ) const { return level_data.tile( cell_to_test.x, cell_to_test.y ); }
-
 	Vec2i get_world_dimension() const { return Vec2i( level_data.get_width(), level_data.get_height()); }
 	Vec2 get_player_position() const { return player_position; }
 	float get_player_angle() const { return player_angle; }
 	float get_player_zoom() const { return player_zoom; }
+	bool do_show_minimap() const { return show_minimap; }
+	bool do_show_debugging() const { return show_debugging; }
 
 private:
 	Level level_data = Level(0,0);
@@ -69,7 +62,4 @@ private:
 
 	bool is_wall( Vec2 position ) const;
 	int get_wall_texture_id( Vec2 hitpoint ) const;
-
-	static std::array<float, 2> calc_step_size( const Vec2& ray_dir );
-	static std::array<float, 2> calc_initial_ray_lengths( const Vec2& ray_start, const Vec2& ray_dir, const std::array<float, 2>& step_size );
 };

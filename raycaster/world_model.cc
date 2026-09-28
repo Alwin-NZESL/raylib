@@ -17,13 +17,33 @@
  * MA 02110-1301, USA.
  */
 
-#include <unordered_map>
-#include <fstream>
-#include <iostream>
+#include "world_model.h"
 
 #include "key_messages.h"
 
-#include "world_model.h"
+namespace {
+
+    std::array<float, 2> calc_step_size( const Vec2& ray_dir )
+    {
+        return std::array<float, 2>{
+            std::sqrt( 1 + ( ray_dir.y / ray_dir.x ) * ( ray_dir.y / ray_dir.x ) ),
+            std::sqrt( 1 + ( ray_dir.x / ray_dir.y ) * ( ray_dir.x / ray_dir.y ) )
+        };
+    }
+
+    std::array<float, 2> calc_initial_ray_lengths( const Vec2& ray_start, const Vec2& ray_dir, const std::array<float, 2>& step_size )
+    {
+        constexpr size_t x_dim = 0;
+        constexpr size_t y_dim = 1;
+
+        const Vec2 first_offset = ray_start - ray_start.floor();
+
+        return std::array<float, 2> {
+            ( ( ray_dir.x < 0 ) ? first_offset.x : ( 1.0F - first_offset.x ) ) * step_size[x_dim],
+            ( ( ray_dir.y < 0 ) ? first_offset.y : ( 1.0F - first_offset.y ) ) * step_size[y_dim]
+        };
+    }
+}
 
 void WorldModel::load_level(const Level& level)
 {
@@ -31,34 +51,6 @@ void WorldModel::load_level(const Level& level)
 
     player_position = level.get_player_origin() + Vec2{0.5,0.5};   // adjust to the centre of the tile;
     player_angle = level.get_player_angle();
-}
-
-std::pair<int,int> WorldModel::get_background_ids( Vec2 hitpoint ) const
-{
-    Vec2i cell = hitpoint.floor();
-    // int floor_tex_id = ((int(hitpoint.x + hitpoint.y)) & 1) ? 4 : 3; // diagonal floor
-    // int floor_tex_id = ((cell.x + cell.y) & 1) ? 4 : 3; // checkered floor
-    // int floor_tex_id = ((int(cell.x )) & 1) ? 4 : 3; // vertical stripes floor
-    int floor_tex_id = 3;
-    int ceil_tex_id = 5;
-
-    if( show_generated_textures ) {
-        floor_tex_id += 8;
-        ceil_tex_id += 8;
-    }
-    
-    return std::make_pair( floor_tex_id, ceil_tex_id );
-}
-
-int WorldModel::get_wall_texture_id( Vec2 hitpoint ) const
-{
-    Vec2i cell = hitpoint.floor();
-    int wall_text_id = level_data.tile( cell.x, cell.y ) - 1;
-    
-    if( show_generated_textures )
-        wall_text_id += 8;
-
-    return wall_text_id;
 }
 
 bool WorldModel::update( uint16_t key_state, float elapsed_time )
@@ -103,16 +95,6 @@ bool WorldModel::update( uint16_t key_state, float elapsed_time )
 	}
 
     return true;
-}
-
-bool WorldModel::is_wall( Vec2 position ) const
-{
-    Vec2i cell = position.floor();
-    
-    if( ! level_data.contains( cell.x, cell.y ) )
-        return false;
-
-    return level_data.tile( cell.x, cell.y ) != 0;
 }
 
 std::optional<RayHit> WorldModel::cast_ray( int step, int width ) const
@@ -172,23 +154,23 @@ std::optional<RayHit> WorldModel::cast_ray( int step, int width ) const
     };
 }
 
-std::array<float, 2> WorldModel::calc_step_size( const Vec2& ray_dir )
+bool WorldModel::is_wall( Vec2 position ) const
 {
-    return std::array<float, 2>{
-        std::sqrt( 1 + ( ray_dir.y / ray_dir.x ) * ( ray_dir.y / ray_dir.x ) ),
-        std::sqrt( 1 + ( ray_dir.x / ray_dir.y ) * ( ray_dir.x / ray_dir.y ) )
-    };
+    Vec2i cell = position.floor();
+    
+    if( ! level_data.contains( cell.x, cell.y ) )
+        return false;
+
+    return level_data.tile( cell.x, cell.y ) != 0;
 }
 
-std::array<float, 2> WorldModel::calc_initial_ray_lengths( const Vec2& ray_start, const Vec2& ray_dir, const std::array<float, 2>& step_size )
+int WorldModel::get_wall_texture_id( Vec2 hitpoint ) const
 {
-	constexpr size_t x_dim = 0;
-	constexpr size_t y_dim = 1;
+    Vec2i cell = hitpoint.floor();
+    int wall_text_id = level_data.tile( cell.x, cell.y ) - 1;
+    
+    if( show_generated_textures )
+        wall_text_id += 8;
 
-    const Vec2 first_offset = ray_start - ray_start.floor();
-
-    return std::array<float, 2> {
-        ( ( ray_dir.x < 0 ) ? first_offset.x : ( 1.0F - first_offset.x ) ) * step_size[x_dim],
-        ( ( ray_dir.y < 0 ) ? first_offset.y : ( 1.0F - first_offset.y ) ) * step_size[y_dim]
-    };
+    return wall_text_id;
 }
