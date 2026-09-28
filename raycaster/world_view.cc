@@ -18,43 +18,17 @@
  */
 
 #include "world_view.h"
-#include "world_model.h"
 
 #include <cmath>
 #include <chrono>
 
+#include "world_model.h"
 #include "vec2.h"
-
+#include "adapter.h"
 #include "texture_container.h"
 
 namespace {
-
     TextureContainer textures;
-    Texture2D texture;
-
-    void alloc_texture_buffer( uint32_t* buffer, Vec2i dimension )
-    {
-        Image image = {
-            .data = buffer,
-            .width = (int)dimension.x,
-            .height = (int)dimension.y,
-            .mipmaps = 1,
-            .format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8
-        };
-        texture = LoadTextureFromImage( image );    
-
-    }
-
-    void draw_texture_buffer( uint32_t* buffer )
-    {
-        UpdateTexture( texture, buffer );
-        DrawTexture( texture, 0, 0, WHITE );
-    }
-
-    void delete_texture_buffer()
-    {
-        UnloadTexture( texture );
-    }
 
     uint32_t shade_pixel( uint32_t colour, float shading_factor )
     {
@@ -134,17 +108,6 @@ namespace {
             buffer[(position.y * dimension.x + position.x)] = color;
     }
 
-    void draw_debugging_info( Vec2i dimension, double minimap_us, double rays_us )
-    {
-        std::string minimap_text = "Minimap: " + std::to_string( minimap_us / 1000.0F ) + " ms";
-        std::string rays_text = "Rays: " + std::to_string( rays_us / 1000.0F ) + " ms";
-        std::string delta_time_text = "Delta time: " + std::to_string( GetFrameTime() * 1000.0F ) + " ms";
-
-        DrawText( rays_text.c_str(), 0, dimension.y - 120, 40, BLUE );
-        DrawText( minimap_text.c_str(), 0, dimension.y - 80, 40, BLUE );
-        DrawText( delta_time_text.c_str(), 0, dimension.y - 40, 40, RED );
-    }
-
 }
 
 void WorldView::setup( size_t width, size_t height )
@@ -197,24 +160,23 @@ void WorldView::paint_rays( WorldModel& world )
 {
     for( int x = 0; x < bounds.x; ++x ) {
 
-        uint32_t* tex_buffer = nullptr;
         float shading_factor = 1.0F;
         float wall_height = 0;
         Vec2 tex_coord{ 0.0, 0.0 };
+        int wall_type = -1;
 
         const auto hit = world.cast_ray( x, bounds.x);
         if( hit ) {
-            tex_buffer = textures.get_buffer( hit->wall_type );
+            wall_type = hit->wall_type;
             shading_factor = 1.0F - hit->wall_side * 0.35F;
             wall_height = bounds.y / ( hit->distance_to_wall * world.get_player_zoom() );
-            tex_coord.x = hit->wall_offset;
-            tex_coord.y = 1.0 / wall_height;
+            tex_coord = Vec2{ hit->wall_offset, 1.0F / wall_height };
         }
-
+        
         float wall_top    = (bounds.y - wall_height) / 2;
         float wall_bottom = (bounds.y + wall_height) / 2;
 
-        draw_column( x, wall_top, wall_bottom, tex_coord, tex_buffer, shading_factor);
+        draw_column( x, wall_top, wall_bottom, tex_coord, wall_type, shading_factor);
     }
 }
 
@@ -278,12 +240,14 @@ void WorldView::paint_camera( WorldModel& world )
 	draw_point( framebuffer.data(), bounds, position, 6.0, yellow );
 }
 
-void WorldView::draw_column( size_t x, float wall_top, float wall_bottom, Vec2 &tex_coord, uint32_t *tex_buffer, float shading_factor )
+void WorldView::draw_column( size_t x, float wall_top, float wall_bottom, Vec2 &tex_coord, int wall_type, float shading_factor )
 {
     constexpr uint32_t CEILING_COLOR = 0xFF181818;
     constexpr uint32_t FLOOR_COLOR = 0xFF626262;
     size_t y;
     float dy = tex_coord.y;     // paint_rays stores the delta in the texture coords
+
+    uint32_t * tex_buffer = textures.get_buffer( wall_type );
 
     tex_coord.y = (wall_top < 0.0F) ? -wall_top * dy : 0.0F;
 

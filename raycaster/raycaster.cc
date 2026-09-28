@@ -24,7 +24,7 @@
 #include "world_model.h"
 #include "world_view.h"
 
-#include "key_messages.h"
+#include "adapter.h"
 
 int main( int argc, char* argv[] )
 {

@@ -34,4 +34,3 @@ enum KeyState : uint16_t
     ToggleDebugging = 1 << 8,
 };
 
-uint16_t get_input( );

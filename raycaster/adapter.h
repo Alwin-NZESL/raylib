@@ -1,5 +1,5 @@
 /*
- * world_view.h Copyright 2026 Alwin Leerling dna.leerling@gmail.com
+ * adapter.h Copyright 2026 Alwin Leerling dna.leerling@gmail.com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,25 +20,12 @@
 #pragma once
 
 #include <cstdint>
-#include <vector>
 
-#include "world_model.h"
+#include "vec2.h"
 
-class WorldView
-{
-public:
-    void setup( size_t width, size_t height );
-    void render( WorldModel &world );
-    void teardown();
+uint16_t get_input( );
 
-private:
-    std::vector<uint32_t> framebuffer;
-    Vec2i bounds;
-	float unit_size;
-
-    void paint_rays( WorldModel& world );
-    void paint_minimap( WorldModel& world );
-    void paint_camera( WorldModel& world );
-
-    void draw_column( size_t x, float wall_top, float wall_bottom, Vec2 &tex_coord, int wall_type, float shading_factor);
-};
+void alloc_texture_buffer( uint32_t* buffer, Vec2i dimension );
+void draw_texture_buffer( uint32_t* buffer );
+void delete_texture_buffer();
+void draw_debugging_info( Vec2i dimension, double minimap_us, double rays_us );
