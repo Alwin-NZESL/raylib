@@ -1,5 +1,5 @@
 #
-# CMakeLists.txt Copyright 2024 Alwin Leerling dna.leerling@gmail.com
+# CMakeLists.txt Copyright 2026 Alwin Leerling dna.leerling@gmail.com
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,7 +17,6 @@
 # MA 02110-1301, USA.
 #
 
-# Add the texture files to the project
-file(GLOB TEXTURE_FILES "*.png" )
-
-file( COPY ${TEXTURE_FILES} DESTINATION ${CMAKE_BINARY_DIR}/raycaster/textures )
+add_subdirectory( resources )
+add_subdirectory( src )
+add_subdirectory( test )

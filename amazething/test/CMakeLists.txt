@@ -14,18 +14,6 @@ FetchContent_MakeAvailable(googletest)
 enable_testing()
 include(GoogleTest)
 
-add_executable(
-    test_editor
-
-    test_level.cc
-    test_grid.cc
-    test_amazeditor.cc
-    test_amazeview.cc
-    mock_adapter.cc
-    mock_textboxwrapper.cc
-    test_editor_view_int.cc
-)
-
-target_link_libraries( test_editor PRIVATE GTest::gtest_main level_ds )
-
-gtest_discover_tests( test_editor )
+add_subdirectory( shared )
+add_subdirectory( editor )
+add_subdirectory( player )

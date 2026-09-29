@@ -22,7 +22,7 @@
 #include <cstdint>
 #include <array>
 
-#include <raylib.h>
+#include "raylib.h"
 
 #include "vec2.h"
 
